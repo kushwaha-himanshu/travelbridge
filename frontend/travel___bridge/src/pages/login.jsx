@@ -4,10 +4,52 @@ import { useNavigate } from 'react-router-dom'
 import loginImg from '../assets/login-page-img.jpeg'
 import { FcGoogle } from "react-icons/fc";
 
+import {
+  EmailAuthCredential,
+  signInWithPopup
+} from "firebase/auth";
+
+import { auth, provider } from "../firebase";
+
 const Login = () => {
 
     const [showPassword, setShowPassword] = useState(false);
+    const [rememberMe, setRememberMe] = useState(false);
+    
     const navigate = useNavigate();
+
+    const handleLogin = async(e) => {
+        e.preventDefault();
+         if(!email || !password ){
+            alert("Please enter both email and password.");
+            return;
+            }
+
+          
+
+          
+    
+   
+
+          
+
+    }
+
+     // Implement Google Sign-In logic here
+    const handleLoginwithGoogle = async (e) => {
+        e.preventDefault();
+        const res = await signInWithPopup(auth, provider)
+      .then((result) => {
+        const user = result.user;
+        console.log(user);
+        alert("Google Login successful");
+        navigate('/mainPage');
+      })
+      .catch((error) => {
+        console.log(error);
+        alert("Google Login failed. Please try again.");
+      });
+    }
 
 
 
@@ -200,6 +242,8 @@ const Login = () => {
               <div className='flex items-center gap-2'>
 
                 <input
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
                   type="checkbox"
                   className='w-4 h-4'
                 />
@@ -211,6 +255,7 @@ const Login = () => {
               </div>
 
               <button
+                onClick={() => navigate('/forgot-password')}
                 type="button"
                 className='text-sm text-blue-500 hover:text-blue-700'
               >
@@ -244,7 +289,8 @@ const Login = () => {
 
             {/* Google */}
             <button
-              type="button"
+              onClick={(e) => handleLoginwithGoogle(e)}
+              type="button"              
               className='w-full border border-gray-300 text-gray-700 py-3 rounded-lg flex items-center justify-center gap-2 hover:bg-gray-100 transition-colors duration-300'
             >
 
