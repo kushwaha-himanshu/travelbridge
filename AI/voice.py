@@ -1,15 +1,22 @@
+from pathlib import Path
+
 import whisper
 
 from deep_translator import GoogleTranslator
 
 from gtts import gTTS
 
+
+BASE_DIR = Path(__file__).resolve().parent
+INPUT_AUDIO = BASE_DIR / "himanshu.mp3"
+OUTPUT_AUDIO = BASE_DIR / "translated.mp3"
+
 # Load Whisper model
-model = whisper.load_model("small")
+model = whisper.load_model("base")
 
 # Speech → Text
 result = model.transcribe(
-    "himanshu.mp3"
+    str(INPUT_AUDIO)
 )
 
 english_text = result["text"]
@@ -33,9 +40,9 @@ tts = gTTS(
 )
 
 # Save audio
-tts.save("translated.mp3")
+tts.save(str(OUTPUT_AUDIO))
 
-print("\nTranslated voice saved as translated.mp3")
+print(f"\nTranslated voice saved as {OUTPUT_AUDIO}")
 
 
 
