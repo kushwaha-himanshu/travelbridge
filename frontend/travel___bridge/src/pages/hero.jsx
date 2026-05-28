@@ -108,23 +108,6 @@ const Hero = () => {
     speakers: "45M Speakers",
   },
 ];
-    const handleClick = (e) => {
-     e.preventDefault();
- 
-     const isRegistered = localStorage.getItem('isRegistered');
-     const isLoggedIn = localStorage.getItem('isLoggedIn');
-
-    if(isRegistered === 'true' ) {
-      navigate('/login');
-      }
-
-     else if(isLoggedIn === 'true') {
-      navigate('/home');
-     }
-      else {  
-        navigate('/signup');
-      } 
-  }
   return (
     <div className="w-full min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50">
     <div className="  bg-gradient-to-br from-blue-50 via-white to-cyan-50 min-h-screen">
@@ -166,8 +149,7 @@ const Hero = () => {
         {/* Buttons */}
         <div className="flex items-center space-x-4">
 
-          <button onClick={() => navigate('/login')} className="text-blue-600 font-medium hover:text-white hover:bg-blue-400 px-5 py-2 rounded-xl transition">
-          <button className="text-blue-600 font-medium hover:text-white hover:bg-blue-400 px-5 py-2 rounded-xl transition" onClick={() => navigate('/login')}>
+          <button className="text-blue-600 font-medium hover:text-white hover:bg-blue-400 px-5 py-2 rounded-xl transition" onClick={() => navigate('/')}>
             Login
           </button>
 
@@ -208,7 +190,7 @@ const Hero = () => {
     {/* Buttons */}
     <div className="flex items-center gap-5 mt-8">
 
-      <button onClick={(e) => handleClick(e)} className="bg-blue-600 text-white px-7 py-3 rounded-2xl hover:bg-blue-700 transition shadow-md">
+      <button className="bg-blue-600 text-white px-7 py-3 rounded-2xl hover:bg-blue-700 transition shadow-md">
         Start Translating
       </button>
 
