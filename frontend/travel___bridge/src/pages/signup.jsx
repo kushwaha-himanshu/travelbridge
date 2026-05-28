@@ -205,6 +205,12 @@ import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { useEffect } from 'react';
 import axios from 'axios';
+import {
+  signInWithPopup
+} from "firebase/auth";
+
+import { auth, provider } from "../firebase";
+
 
 const Signup = () => {
 
@@ -215,6 +221,7 @@ const Signup = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [checked, setChecked] = useState(false);
   const [showPassword,setShowPassword]=useState(false);
+
 
  
   
@@ -262,6 +269,37 @@ const Signup = () => {
 
 
   }
+
+  const handleSignupwithGoogle = async (e) => {
+    e.preventDefault();
+    // Implement Google Sign-Up logic here
+    console.log("Google Sign-Up clicked");
+
+    const res = await signInWithPopup(auth, provider)
+      .then((result) => {
+        const user = result.user;
+        console.log(user);
+        alert("Google Sign-Up successful");
+
+        localStorage.setItem("isLoggedIn", true);
+
+        localStorage.setItem("userName", user.displayName);
+
+        localStorage.setItem("userEmail", user.email);
+
+        navigate('/mainPage');
+
+      })
+      .catch((error) => {
+        console.log(error);
+        alert("Google Sign-Up failed. Please try again.");
+      });
+    
+  }
+  
+ 
+
+
 
 
 
@@ -587,6 +625,7 @@ const Signup = () => {
 
             {/* Google Button */}
             <button
+              onClick={(e) => handleSignupwithGoogle(e)}
               type="button"
               className='w-full border border-gray-300 text-gray-700 py-3 rounded-lg flex items-center justify-center gap-2 hover:bg-gray-100 transition-colors duration-300'
             >
