@@ -3,6 +3,8 @@ import cors from "cors"
 import cookieParser from "cookie-parser"
 import testRoutes from "./routes/test.routes.js"
 import userRoutes from "./routes/user-routes.js";
+import audioRoutes from "./routes/audioRoute.js";
+import imgRoutes from "./routes/imgRoute.js";
 //for cross origin
 const app=express();
 app.use(
@@ -22,5 +24,8 @@ app.use(express.urlencoded({extended:true,limit:"16kb"}))
  app.use(cookieParser())
 app.use("/api/v1/test", testRoutes)
 app.use("/api/auth",userRoutes)
+
+app.use("/api/audio",audioRoutes);
+app.use("/api/img",imgRoutes)
 
 export {app}
