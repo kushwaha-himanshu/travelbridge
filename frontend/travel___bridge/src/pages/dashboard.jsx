@@ -24,7 +24,7 @@ const Dashboard = () => {
 		<div className="min-h-screen bg-[#F5F7FB] text-slate-900">
 			<Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-			<div className="lg:pl-[250px]">
+			<div className="lg:pl-68 xl:pl-72">
 				<Navbar onMenuClick={() => setSidebarOpen(true)} />
 
 				<main className="px-4 py-5 sm:px-6 lg:px-8 lg:py-6">
@@ -35,6 +35,8 @@ const Dashboard = () => {
 							<div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
 								<HeroBanner />
 								<PremiumCard />
+
+								
 							</div>
 
 							<QuickActions />

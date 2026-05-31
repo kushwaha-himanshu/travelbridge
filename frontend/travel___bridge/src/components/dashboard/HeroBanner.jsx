@@ -8,7 +8,7 @@ const HeroBanner = () => {
       initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      className="relative overflow-hidden rounded-[30px] bg-[linear-gradient(135deg,#E9F2FF_0%,#F4F8FF_52%,#DDEBFF_100%)] px-6 py-6 shadow-lg ring-1 ring-white/70 md:px-8 md:py-8"
+       className="group rounded-[24px] border border-slate-200 bg-white p-5 text-left shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-lg"
     >
       <div className="absolute -right-10 top-6 h-36 w-36 rounded-full bg-blue-200/30 blur-3xl" />
       <div className="absolute -left-8 bottom-0 h-40 w-40 rounded-full bg-white/70 blur-3xl" />
@@ -53,16 +53,6 @@ const HeroBanner = () => {
         </div>
 
         <div className="relative flex items-center justify-center lg:justify-end">
-          <div className="absolute left-3 top-10 rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-slate-900 shadow-lg shadow-slate-900/5 ring-1 ring-slate-100 md:left-10">
-            Hola, <span className="font-normal text-slate-500">¿cómo estás?</span>
-          </div>
-          <div className="absolute left-16 top-[48%] rounded-2xl bg-emerald-500 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-500/20 ring-1 ring-white/50">
-            रेल्वे स्टेशन कहाँ है?
-          </div>
-          <div className="absolute bottom-20 left-6 rounded-2xl bg-[#2563EB] px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/20 ring-1 ring-white/50">
-            Where is the bus stop?
-          </div>
-
           <motion.img
             src={heroArtwork}
             alt="Travel translation illustration"

@@ -43,7 +43,7 @@ const Login = () => {
         const user = result.user;
         console.log(user);
         alert("Google Login successful");
-        navigate('/mainPage');
+        navigate('/dashboard');
       })
       .catch((error) => {
         console.log(error);

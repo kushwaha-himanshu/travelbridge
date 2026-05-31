@@ -4,14 +4,14 @@ import aboutImage from '../../assets/about-img.png'
 import langImage from '../../assets/lang-img2.png'
 
 export const sidebarItems = [
-  { label: 'Dashboard', icon: 'LayoutDashboard', active: true },
-  { label: 'Translate', icon: 'Languages' },
-  { label: 'Voice Translate', icon: 'Mic' },
-  { label: 'Camera Translate', icon: 'ScanSearch' },
+  { label: 'Dashboard', icon: 'LayoutDashboard', path: '/dashboard', active: true },
+  { label: 'Text Translate', icon: 'Languages', path: '/text-translate' },
+  { label: 'Voice Translate', icon: 'Mic', path: '/voice-translate' },
+  { label: 'Camera Translate', icon: 'ScanSearch', path: '/camera-translate' },
   { label: 'Trip Planner', icon: 'Route' },
   { label: 'Phrasebook', icon: 'NotebookText' },
   { label: 'History', icon: 'History' },
-  { label: 'Emergency', icon: 'Siren' },
+  { label: 'Emergency', icon: 'ShieldAlert' },
   { label: 'Pricing', icon: 'BadgePercent' },
   { label: 'Settings', icon: 'Settings2' },
 ]

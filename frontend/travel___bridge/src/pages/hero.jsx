@@ -149,7 +149,7 @@ const Hero = () => {
         {/* Buttons */}
         <div className="flex items-center space-x-4">
 
-          <button className="text-blue-600 font-medium hover:text-white hover:bg-blue-400 px-5 py-2 rounded-xl transition" onClick={() => navigate('/')}>
+          <button className="text-blue-600 font-medium hover:text-white hover:bg-blue-400 px-5 py-2 rounded-xl transition" onClick={() => navigate('/login')}>
             Login
           </button>
 
