@@ -10,10 +10,16 @@ const userSchema = new mongoose.Schema({
         required: true,
         unique: true,
     },  
-    password: {
-        type: String,
-        required: true,
-    },
+   password: {
+  type: String,
+  required: function () {
+    return this.authProvider === "local";
+  }
+},authProvider: {
+  type: String,
+  enum: ["local", "google"],
+  default: "local"
+},
     resetToken: String,
     resetTokenExpiry: Date,
 }, { timestamps: true });   

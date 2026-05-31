@@ -2,7 +2,7 @@ import express from "express"
 import cors from "cors"
 import cookieParser from "cookie-parser"
 import testRoutes from "./routes/test.routes.js"
-import userRoutes from "./routes/user-routes.js"
+import userRoutes from "./routes/user-routes.js";
 //for cross origin
 const app=express();
 app.use(
