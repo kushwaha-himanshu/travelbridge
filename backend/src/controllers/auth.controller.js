@@ -1,112 +1,66 @@
 import User from "../models/User.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import { getToken } from "../utils/getToken.js";
+import { auth } from "../../../frontend/travel___bridge/src/firebase.js";
 
-export const register = async (req, res) => {
-
-  try {
-
-    const { fullname, email, password } = req.body;
-
-    // Check existing user
-    if (!fullname || !email || !password) {
-
-      return res.status(400).json({
-        message: "Please provide fullname, email and password"
-      });}
-    
-    const existingUser = await User.findOne({
-
-      $or: [{ email }, { fullname }]
-
-    });
-
-    if (existingUser) {
-
-      return res.status(402).json({
-        message: "User with this email or fullname already exists"
-      });
-
-    }
-
-    // Hash password
-    console.log("req.body:", req.body);
-console.log("password:", password);
-console.log("typeof password:", typeof password);
-    const salt = await bcrypt.genSalt(10);
+const generateAccessAndRefreshToken=async (userId)=>{
+try {
   
+  const user=await User.findById(userId);
+  //small check for userr
+  const accessToken=user.generateAccessToken()
+  const refreshToken=user.generateRefreshToken()
+  user.refreshToken=refreshToken
+  await user.save({validateBeforeSave:false})
+  return {accessToken,refreshToken}
+  
+} catch (error) {
+  console.error("Error generating tokens:",error);
+  throw new Error("Error generating tokens");
+}
+}
+export const register = async (req, res) => {
+const {fullname,email,password}=req.body;
+if(!fullname||!email||!password){
+    return res.status(400).json({message:"All fields are required"});
+ 
+}
+const existingUser=await User.findOne({
+  email:email
+})
+if(existingUser){
+  throw new Error("User with this email already exists");
+}
+//create user
+try{
+  
+  const user=await User.create({
+    fullname,
+    email,
+    password
+  })
+  const {accessToken,refreshToken}=await generateAccessAndRefreshToken(user._id);
+  res.cookie("accessToken",accessToken,{httpOnly:true,secure:false,sameSite:"lax"});
+  res.cookie("refreshToken",refreshToken,{httpOnly:true,secure:false,sameSite:"lax"});
+  return res.status(200).json({
+    message:"User registered successfully",
+    user:{
+      id:user._id,
+      fullname:user.fullname,
+      email:user.email,
+      accessToken,
+      refreshToken
+    }
+  });
 
-    const hashedPassword = await bcrypt.hash(
-      password,
-      salt
-    );
-      console.log("password:", password);
-console.log("typeof password:", typeof password);
 
-    // Create user
-    const newUser = new User({
-
-      fullname,
-      email,
-      password: hashedPassword
-
-    });
-
-    // Save user
-    await newUser.save();
-
-    // Generate token
-    const token = jwt.sign(
-
-      {
-        id: newUser._id
-      },
-
-      process.env.JWT_SECRET,
-
-      {
-        expiresIn: "7d"
-      }
-
-    );
-
-    // Save token in cookie
-    res.cookie("token", token, {
-
-      httpOnly: true,
-
-      secure: false,
-
-      sameSite: "strict"
-
-    });
-
-    // Final response
-    res.status(200).json({
-
-      success: true,
-
-      message: "User registered successfully",
-
-      token,
-
-      user: newUser // Exclude password from response
-
-    });
-
-  }
-  catch (error) {
-
-    console.error(error);
-
-    res.status(500).json({
-      message: "Server error"
-    });
-
-  }
+}catch(err){
+  console.error("Error creating user:",err);
+  throw new Error("Error creating user");
+}
 
 }
+
 
 
 
@@ -114,60 +68,40 @@ export const login =async (req , res) =>{
 
   try {
 
-    const {fullname, email, password } = req.body;
+    const {email, password } = req.body;
+    if (!email || !password) {
+      throw new Error("Email and password are required");}
 
     const user= await User.findOne({
       email:email
     })
 
     if(!user){
-      return res.status(400).json({message:"invalid Credential"})
+      return res.status(404).json({message:"Invalid Credential"})
     }
-    const isValidPassword= await bcrypt.compare(password,user.password);
+    const isValidPassword= await user.isPasswordCorrect(password);
 
     if(!isValidPassword){
        return res.status(400).json({message:"invalid Credential"})
     }
+    const {accessToken,refreshToken}=await generateAccessAndRefreshToken(user._id);
+    const userData=await User.findById(user._id).select("-password -refreshToken");
+    if(!userData){
+      return res.status(404).json({message:"User not found"})
+    }
+    res.cookie("accessToken",accessToken,{httpOnly:true,secure:false,sameSite:"lax"});
+    res.cookie("refreshToken",refreshToken,{httpOnly:true,secure:false,sameSite:"lax"});
 
-    // Generate token
-    const token = jwt.sign(
-
-      {
-        id: user._id
-      },
-
-      process.env.JWT_SECRET,
-
-      {
-        expiresIn: "7d"
-      }
-
-    );
-
-    // Save token in cookie
-    res.cookie("token", token, {
-
-      httpOnly: true,
-
-      secure: false,
-
-      sameSite: "strict"
-
-    });
+return res.status(200).json({
+  message:"Login successful",
+  user:userData,
+  accessToken,
+  refreshToken
+})
    
-    res.status(200).json({
-      message:"User Logged In successfully",
-      user:{
-        id:user._id,
-        fullname:user.userfullname,
-        email:user.email
-
-      }
 
 
-    })
-
-
+    
     
   }catch (error) {
 
@@ -187,12 +121,20 @@ export const googleAuth=async(req,res)=>{
      if(!user){
       user=await User.create({fullname,email,authProvider:"google"});
      }
-  const token=await getToken(user._id);
-  res.cookie("token",token,{httpOnly:true,secure:false,sameSite:"strict"});
-  return res.status(200).json({
-    message:"Google Authentication successful",
-    user
-  });
+      const {accessToken,refreshToken}=await generateAccessAndRefreshToken(user._id);
+      res.cookie("accessToken",accessToken,{httpOnly:true,secure:false,sameSite:"lax"});
+      res.cookie("refreshToken",refreshToken,{httpOnly:true,secure:false,sameSite:"lax"});
+      return res.status(200).json({
+        message:"Google Authentication successful",
+        user:{
+          id:user._id,
+          fullname:user.fullname,
+          authProvider:user.authProvider,
+          email:user.email,
+          accessToken,
+          refreshToken
+        }
+      });
 
   }catch(err){
     console.error("Google Authentication error:",err);
@@ -202,7 +144,18 @@ export const googleAuth=async(req,res)=>{
  
 export const logout=async(req,res)=>{
   try{
-res.clearCookie("token");
+   const user=await User.findByIdAndUpdate(
+    req.user._id,
+    {
+      $set:{
+        refreshToken:"",
+      }
+    },
+    {new:true}
+  )
+  console.log("User logged out successfully", user);
+res.clearCookie("accessToken",{httpOnly:true,secure:false,sameSite:"lax"});
+res.clearCookie("refreshToken",{httpOnly:true,secure:false,sameSite:"lax"});
 return res.status(200).json({message:"Logout successful"});
   }catch(err){
     console.error("Logout error:",err);

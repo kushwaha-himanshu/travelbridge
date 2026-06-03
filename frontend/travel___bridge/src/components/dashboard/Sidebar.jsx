@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import { useLocation, useNavigate } from 'react-router-dom'
+
 import {
   BadgePercent,
   History,
@@ -16,6 +17,7 @@ import {
   X,
 } from 'lucide-react'
 import { sidebarItems } from './dashboardData'
+import axios from 'axios';
 
 const iconMap = {
   LayoutDashboard,
@@ -30,24 +32,12 @@ const iconMap = {
   Settings2,
 }
 
-const SidebarContent = ({ currentPath, onNavigate }) => (
-  <div className="flex h-full flex-col border-r border-white/10 bg-linear-to-b from-[#0F3D91] via-[#13479F] to-[#1A56B3] text-white">
-    <div className="px-5 pt-5">
-      <div className="flex items-center justify-between lg:hidden">
-        <div className="text-sm font-semibold tracking-wide text-white/90">TravelBridge</div>
-      </div>
 
-      <div className="flex items-center gap-3 rounded-[22px] bg-white/10 px-4 py-4 shadow-sm backdrop-blur-md">
-        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/15 ring-4 ring-white/10">
-          <span className="text-lg font-semibold">JD</span>
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-base font-semibold">John Doe</p>
-          <p className="text-sm text-white/75">Premium Plan ✨</p>
-        </div>
-        <ChevronRight className="h-4 w-4 text-white/70" />
-      </div>
-    </div>
+
+const SidebarContent = ({ currentPath, onNavigate, onLogout }) => (
+
+  <div className="flex h-full flex-col border-r border-white/10 bg-linear-to-b from-[#0F3D91] via-[#13479F] to-[#1A56B3] text-white">
+
 
     <nav className="mt-6 flex-1 px-4 pb-4">
       <div className="space-y-1">
@@ -71,6 +61,21 @@ const SidebarContent = ({ currentPath, onNavigate }) => (
         })}
       </div>
     </nav>
+    
+    {/* logout */}
+        <div className="px-5 pt-5 mb-4">
+      <div className="flex items-center justify-between lg:hidden">
+        <div className="text-sm font-semibold tracking-wide text-white/90">TravelBridge</div>
+      </div>
+
+      <div className="flex items-center gap-3 rounded-[22px] bg-white/10 px-4 py-4 shadow-sm backdrop-blur-md">
+        
+          <button className="flex items-center gap-2 text-sm font-medium text-white/88 hover:text-white" onClick={onLogout}>
+            <X className="h-4 w-4" />
+            <span className="text-sm font-medium flex items-center gap-2 rounded-md bg-white/10 px-3 py-1">Logout</span>
+          </button >
+        </div>
+      </div>
 
     <div className="px-4 pb-5">
       <div className="rounded-3xl bg-white/12 p-4 shadow-lg ring-1 ring-white/10 backdrop-blur-md">
@@ -92,6 +97,22 @@ const SidebarContent = ({ currentPath, onNavigate }) => (
 const Sidebar = ({ open, onClose }) => {
   const location = useLocation()
   const navigate = useNavigate()
+  const handleLogout = async () => {
+    try {
+      const res = await axios.post('http://localhost:8000/api/auth/logout', {}, {
+        withCredentials: true,
+      })
+
+      console.log('Logout response:', res)
+
+      if (res.status === 200) {
+        alert('Logout successful')
+        navigate('/login')
+      }
+    } catch (err) {
+      console.error('Logout error:', err)
+    }
+  }
 
   const handleNavigate = (path) => {
     if (!path) return
@@ -101,7 +122,7 @@ const Sidebar = ({ open, onClose }) => {
   return (
     <>
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-68 lg:block xl:w-72">
-        <SidebarContent currentPath={location.pathname} onNavigate={handleNavigate} />
+        <SidebarContent currentPath={location.pathname} onNavigate={handleNavigate} onLogout={handleLogout} />
       </aside>
 
       <AnimatePresence>
@@ -130,7 +151,7 @@ const Sidebar = ({ open, onClose }) => {
               >
                 <X className="h-4 w-4" />
               </button>
-              <SidebarContent currentPath={location.pathname} onNavigate={handleNavigate} />
+              <SidebarContent currentPath={location.pathname} onNavigate={handleNavigate} onLogout={handleLogout} />
             </motion.aside>
           </div>
         ) : null}

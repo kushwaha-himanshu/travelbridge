@@ -7,7 +7,7 @@ import {
 
 const firebaseConfig = {
 
-  apiKey: "AIzaSyCjBguJmFYUYndI3VC9YQ2TtQWZwbyB0qk",
+  apiKey:import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: "travelbridge-7ae98.firebaseapp.com",
   projectId: "travelbridge-7ae98",
   storageBucket: "travelbridge-7ae98.firebasestorage.app",

@@ -267,7 +267,15 @@ const Signup = () => {
     } 
     console.log(userData);
     try{
-      const res = await axios.post('http://localhost:8000/api/auth/register', userData);
+      const res = await axios.post('http://localhost:8000/api/auth/register', userData,
+          {
+    withCredentials: true,
+  }
+      
+        
+          
+        
+      );
       console.log(res);
       if(res.status === 200){
         console.log("Signup successful");
@@ -288,32 +296,33 @@ const Signup = () => {
 
   }
 
-  const handleSignupwithGoogle = async (e) => {
-    e.preventDefault();
-    // Implement Google Sign-Up logic here
-    console.log("Google Sign-Up clicked");
-
-    const res = await signInWithPopup(auth, provider)
-      .then((result) => {
-        const user = result.user;
-        console.log(user);
-        alert("Google Sign-Up successful");
-
-        localStorage.setItem("isLoggedIn", true);
-
-        localStorage.setItem("userName", user.displayName);
-
-        localStorage.setItem("userEmail", user.email);
-
-        navigate('/dashboard');
-
-      })
-      .catch((error) => {
-        console.log(error);
-        alert("Google Sign-Up failed. Please try again.");
-      });
-    
-  }
+     // Implement Google Sign-Up logic here
+    const handleSignupwithGoogle = async (e) => {
+        e.preventDefault();
+      try{
+        const result = await signInWithPopup(auth, provider);
+        const user=result.user;
+        if(!user){
+          alert("Google Sign-Up failed. Please try again.");
+          return;
+        }
+        const email=user.email;
+        const fullname=user.displayName;
+        const res=await axios.post('http://localhost:8000/api/auth/google',{
+          email,
+          fullname},{
+            withCredentials:true
+          });
+          console.log("Google Sign-Up response:", res);
+          if(res.status===200){
+            alert("Google Sign-Up successful");
+            navigate('/dashboard');
+          }
+      }catch(err){
+      throw new Error("Google Sign-Up error:",err);
+      
+      }
+    }
   
  
 

@@ -21,7 +21,7 @@ app.use(express.json({limit:"16kb"}))
 app.use(express.urlencoded({extended:true,limit:"16kb"}))
  app.use(express.static("public"))
 // for parsing  cookies 
- app.use(cookieParser())
+ app.use(cookieParser());
 app.use("/api/v1/test", testRoutes)
 app.use("/api/auth",userRoutes)
 

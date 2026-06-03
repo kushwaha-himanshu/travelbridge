@@ -11,6 +11,7 @@ const Navbar = ({ onMenuClick }) => {
     >
       <div className="flex h-20 items-center gap-4 px-4 sm:px-6 lg:px-8">
         <button
+      
           onClick={onMenuClick}
           className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50 lg:hidden"
         >

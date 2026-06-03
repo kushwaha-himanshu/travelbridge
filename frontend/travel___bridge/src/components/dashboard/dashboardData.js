@@ -14,6 +14,7 @@ export const sidebarItems = [
   { label: 'Emergency', icon: 'ShieldAlert' },
   { label: 'Pricing', icon: 'BadgePercent' },
   { label: 'Settings', icon: 'Settings2' },
+  // {label: 'Logout', icon: 'X' },
 ]
 
 export const quickActions = [

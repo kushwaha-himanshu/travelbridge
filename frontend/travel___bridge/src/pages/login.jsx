@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import loginImg from '../assets/login-page-img.jpeg'
 import { FcGoogle } from "react-icons/fc";
-
+import axios from 'axios';
 import {
   EmailAuthCredential,
   signInWithPopup
@@ -12,7 +12,8 @@ import {
 import { auth, provider } from "../firebase";
 
 const Login = () => {
-
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [rememberMe, setRememberMe] = useState(false);
     
@@ -25,30 +26,53 @@ const Login = () => {
             return;
             }
 
-          
+            try{
+                 const res=await axios.post('http://localhost:8000/api/auth/login',{
+                  email,
+                  password
+                 },{
+                  withCredentials:true
+                 });
+                  console.log("Login response:", res);
+                  // Handle successful login (e.g., store token, redirect)
+                  if(res.status===200){
+                    alert("Login successful");
+                    navigate('/dashboard');
+                  }
+            }catch(err){
+                console.log("Login error:", err);
+                alert("Login failed. Please check your credentials and try again.");
+            }
 
-          
-    
-   
-
-          
 
     }
 
      // Implement Google Sign-In logic here
     const handleLoginwithGoogle = async (e) => {
         e.preventDefault();
-        const res = await signInWithPopup(auth, provider)
-      .then((result) => {
-        const user = result.user;
-        console.log(user);
-        alert("Google Login successful");
-        navigate('/dashboard');
-      })
-      .catch((error) => {
-        console.log(error);
-        alert("Google Login failed. Please try again.");
-      });
+      try{
+        const result = await signInWithPopup(auth, provider);
+        const user=result.user;
+        if(!user){
+          alert("Google Sign-In failed. Please try again.");
+          return;
+        }
+        const email=user.email;
+        const fullname=user.displayName;
+        const res=await axios.post('http://localhost:8000/api/auth/google',{
+          email,
+          fullname},{
+            withCredentials:true
+          });
+          console.log("Google Login response:", res);
+          if(res.status===200){
+            alert("Google Login successful");
+            navigate('/dashboard');
+          }
+      }catch(err){
+      throw new Error("Google Sign-In error:",err);
+      
+      }
     }
 
 
@@ -205,6 +229,7 @@ const Login = () => {
                 type="email"
                 placeholder='✉️ Enter your Email'
                 className='w-full px-4 py-3 mt-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500'
+                onChange={(e) => setEmail(e.target.value)}
               />
 
             </div>
@@ -222,6 +247,7 @@ const Login = () => {
                   type={showPassword ? 'text' : 'password'}
                   placeholder=' 🔒 Enter your Password'
                   className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500'
+                  onChange={(e) => setPassword(e.target.value)}
                 />
 
                 <button
@@ -268,6 +294,7 @@ const Login = () => {
             <button
               type="submit"
               className='w-full mt-2 bg-blue-500 text-white py-3 rounded-lg hover:bg-blue-600 transition-colors duration-300'
+              onClick={(e) => handleLogin(e)}
             >
 
               Login ➜
