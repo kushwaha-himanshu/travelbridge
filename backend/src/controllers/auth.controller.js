@@ -1,6 +1,7 @@
 import User from "../models/User.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import { getToken } from "../utils/getToken.js";
 
 export const register = async (req, res) => {
 
@@ -9,6 +10,12 @@ export const register = async (req, res) => {
     const { fullname, email, password } = req.body;
 
     // Check existing user
+    if (!fullname || !email || !password) {
+
+      return res.status(400).json({
+        message: "Please provide fullname, email and password"
+      });}
+    
     const existingUser = await User.findOne({
 
       $or: [{ email }, { fullname }]
@@ -17,19 +24,25 @@ export const register = async (req, res) => {
 
     if (existingUser) {
 
-      return res.status(400).json({
+      return res.status(402).json({
         message: "User with this email or fullname already exists"
       });
 
     }
 
     // Hash password
+    console.log("req.body:", req.body);
+console.log("password:", password);
+console.log("typeof password:", typeof password);
     const salt = await bcrypt.genSalt(10);
+  
 
     const hashedPassword = await bcrypt.hash(
       password,
       salt
     );
+      console.log("password:", password);
+console.log("typeof password:", typeof password);
 
     // Create user
     const newUser = new User({
@@ -70,7 +83,7 @@ export const register = async (req, res) => {
     });
 
     // Final response
-    res.status(201).json({
+    res.status(200).json({
 
       success: true,
 
@@ -78,7 +91,7 @@ export const register = async (req, res) => {
 
       token,
 
-      user: newUser
+      user: newUser // Exclude password from response
 
     });
 
@@ -167,3 +180,32 @@ export const login =async (req , res) =>{
   }
 }
 
+export const googleAuth=async(req,res)=>{
+  try{
+     const {fullname,email}=req.body;
+     let user=await User.findOne({email:email});
+     if(!user){
+      user=await User.create({fullname,email,authProvider:"google"});
+     }
+  const token=await getToken(user._id);
+  res.cookie("token",token,{httpOnly:true,secure:false,sameSite:"strict"});
+  return res.status(200).json({
+    message:"Google Authentication successful",
+    user
+  });
+
+  }catch(err){
+    console.error("Google Authentication error:",err);
+    return res.status(500).json({message:"Server error during Google Authentication"});
+  }
+}
+ 
+export const logout=async(req,res)=>{
+  try{
+res.clearCookie("token");
+return res.status(200).json({message:"Logout successful"});
+  }catch(err){
+    console.error("Logout error:",err);
+    return res.status(500).json({message:"Server error during logout"});
+  }
+}

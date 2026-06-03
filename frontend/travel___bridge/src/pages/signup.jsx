@@ -203,7 +203,6 @@ import signupImg from '../assets/signup-bg-img.png'
 import { FcGoogle } from "react-icons/fc";
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
-import { useEffect } from 'react';
 import axios from 'axios';
 import {
   signInWithPopup
@@ -221,50 +220,69 @@ const Signup = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [checked, setChecked] = useState(false);
   const [showPassword,setShowPassword]=useState(false);
+  const [message, setMessage] = useState('');
+  const [messageType, setMessageType] = useState('');
 
 
  
   
 
-  const handleSignup = (e) => {
+  const handleSignup = async(e) => {
     e.preventDefault();
+    setMessage('');
+    setMessageType('');
 
- if (!fullName || !email || !password || !confirmPassword) {
-    console.log("Please fill in all fields");
-    alert("Please fill in all fields");
-  }
+    if (!fullName || !email || !password || !confirmPassword) {
+      const errorMessage = "Please fill in all fields";
+      console.log(errorMessage);
+      setMessage(errorMessage);
+      setMessageType('error');
+      return;
+    }
 
   console.log(fullName, email, password, confirmPassword);
 
   if (password !== confirmPassword) {
-    console.log("Passwords do not match");
-    alert("Passwords do not match");
+    const errorMessage = "Passwords do not match";
+    console.log(errorMessage);
+    setMessage(errorMessage);
+    setMessageType('error');
+    return;
   }
 
 
     if(!checked){
     
-    console.log("Please agree to the terms and conditions");
-    alert("Please agree to the terms and conditions");
-    
+      const errorMessage = "Please agree to the terms and conditions";
+      console.log(errorMessage);
+      setMessage(errorMessage);
+      setMessageType('error');
+      return;
   }
+
     const userData ={
-      fullName,
+      fullname: fullName,
       email,
       password
     } 
-    const res=axios.post('http://localhost:5000/api/signup', userData)
+    console.log(userData);
     try{
+      const res = await axios.post('http://localhost:8000/api/auth/register', userData);
+      console.log(res);
       if(res.status === 200){
         console.log("Signup successful");
-        alert("Signup successful");
-        navigate('/mainPage');
+        setMessage(res.data?.message || 'Signup successful');
+        setMessageType('success');
+        navigate('/dashboard');
       }
 
     }
     catch(err){
-      console.log(err);
-      alert("Signup failed. Please try again.");
+      
+      const apiMessage = err?.response?.data?.message;
+      setMessage(apiMessage || "Signup failed. Please try again.");
+      setMessageType('error');
+      console.log("Signup error:", apiMessage || err.message);
     }
 
 
@@ -287,7 +305,7 @@ const Signup = () => {
 
         localStorage.setItem("userEmail", user.email);
 
-        navigate('/mainPage');
+        navigate('/dashboard');
 
       })
       .catch((error) => {
@@ -600,6 +618,12 @@ const Signup = () => {
             </div>
 
             {/* Create Account */}
+            {message && (
+              <p className={`w-full text-sm rounded-lg px-4 py-3 ${messageType === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+                {message}
+              </p>
+            )}
+
             <button
               type="submit"
               className='w-full mt-2 bg-blue-500 text-white py-3 rounded-lg hover:bg-blue-600 transition-colors duration-300'
