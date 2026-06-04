@@ -187,142 +187,118 @@
 //   </div>
 // </div>
 
-            
-        
-
-       
-      
-
-
-
-
-
-
-import React from 'react'
+      import { useState } from 'react'
 import signupImg from '../assets/signup-bg-img.png'
 import { FcGoogle } from "react-icons/fc";
 import { useNavigate } from 'react-router-dom';
-import { useState } from 'react';
-import axios from 'axios';
-import {
-  signInWithPopup
-} from "firebase/auth";
-
+import { signInWithPopup } from "firebase/auth";
 import { auth, provider } from "../firebase";
-
+import { useAuth } from '../context/AuthContext';
 
 const Signup = () => {
-
+  const { register, loginWithGoogle, authLoading } = useAuth();
   const navigate = useNavigate();
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [checked, setChecked] = useState(false);
-  const [showPassword,setShowPassword]=useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState('');
+  const [googleLoading, setGoogleLoading] = useState(false);
 
+  const getPasswordStrength = (pass) => {
+    if (!pass) return '';
+    if (pass.length < 6) return 'weak';
+    const hasNumberOrSpecial = /[\d\W]/.test(pass);
+    const hasUpperLower = /[a-z]/.test(pass) && /[A-Z]/.test(pass);
+    if (pass.length >= 8 && hasNumberOrSpecial && hasUpperLower) {
+      return 'strong';
+    }
+    return 'medium';
+  };
+  const passwordStrength = getPasswordStrength(password);
 
- 
-  
-
-  const handleSignup = async(e) => {
+  const handleSignup = async (e) => {
     e.preventDefault();
     setMessage('');
     setMessageType('');
 
     if (!fullName || !email || !password || !confirmPassword) {
-      const errorMessage = "Please fill in all fields";
-      console.log(errorMessage);
-      setMessage(errorMessage);
+      setMessage("Please fill in all fields");
       setMessageType('error');
       return;
     }
 
-  console.log(fullName, email, password, confirmPassword);
-
-  if (password !== confirmPassword) {
-    const errorMessage = "Passwords do not match";
-    console.log(errorMessage);
-    setMessage(errorMessage);
-    setMessageType('error');
-    return;
-  }
-
-
-    if(!checked){
-    
-      const errorMessage = "Please agree to the terms and conditions";
-      console.log(errorMessage);
-      setMessage(errorMessage);
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setMessage("Please enter a valid email address");
       setMessageType('error');
       return;
+    }
+
+    if (password.length < 6) {
+      setMessage("Password must be at least 6 characters long");
+      setMessageType('error');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setMessage("Passwords do not match");
+      setMessageType('error');
+      return;
+    }
+
+    if (!checked) {
+      setMessage("Please agree to the Terms of Service and Privacy Policy");
+      setMessageType('error');
+      return;
+    }
+
+    const res = await register(fullName, email, password);
+    if (res?.success) {
+      navigate('/dashboard');
+    } else if (res?.error) {
+      setMessage(res.error);
+      setMessageType('error');
+    }
   }
 
-    const userData ={
-      fullname: fullName,
-      email,
-      password
-    } 
-    console.log(userData);
-    try{
-      const res = await axios.post('http://localhost:8000/api/auth/register', userData,
-          {
-    withCredentials: true,
-  }
-      
-        
-          
-        
-      );
-      console.log(res);
-      if(res.status === 200){
-        console.log("Signup successful");
-        setMessage(res.data?.message || 'Signup successful');
-        setMessageType('success');
+  const handleSignupwithGoogle = async (e) => {
+    e.preventDefault();
+    setGoogleLoading(true);
+    setMessage('');
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+      if (!user) {
+        setMessage("Google Sign-Up failed. Please try again.");
+        setMessageType('error');
+        setGoogleLoading(false);
+        return;
+      }
+      const email = user.email;
+      const fullname = user.displayName;
+      const res = await loginWithGoogle(fullname, email);
+      if (res?.success) {
         navigate('/dashboard');
+      } else if (res?.error) {
+        setMessage(res.error);
+        setMessageType('error');
       }
-
-    }
-    catch(err){
-      
-      const apiMessage = err?.response?.data?.message;
-      setMessage(apiMessage || "Signup failed. Please try again.");
+    } catch (err) {
+      console.error("Google Sign-Up error:", err);
+      let userFriendlyMsg = "Google Sign-Up failed. Please try again.";
+      if (err.code === 'auth/popup-closed-by-user') {
+        userFriendlyMsg = "Sign-up popup closed. Please try again.";
+      }
+      setMessage(userFriendlyMsg);
       setMessageType('error');
-      console.log("Signup error:", apiMessage || err.message);
+    } finally {
+      setGoogleLoading(false);
     }
-
-
   }
-
-     // Implement Google Sign-Up logic here
-    const handleSignupwithGoogle = async (e) => {
-        e.preventDefault();
-      try{
-        const result = await signInWithPopup(auth, provider);
-        const user=result.user;
-        if(!user){
-          alert("Google Sign-Up failed. Please try again.");
-          return;
-        }
-        const email=user.email;
-        const fullname=user.displayName;
-        const res=await axios.post('http://localhost:8000/api/auth/google',{
-          email,
-          fullname},{
-            withCredentials:true
-          });
-          console.log("Google Sign-Up response:", res);
-          if(res.status===200){
-            alert("Google Sign-Up successful");
-            navigate('/dashboard');
-          }
-      }catch(err){
-      throw new Error("Google Sign-Up error:",err);
-      
-      }
-    }
   
  
 
@@ -515,14 +491,16 @@ const Signup = () => {
 
               <div className='w-full'>
 
-                <label htmlFor="full-name">
+                <label htmlFor="full-name" className="text-sm font-medium text-slate-700">
                   Full Name
                 </label>
 
                 <input
                   type="text"
-                  placeholder='🙍🏻‍♀️ Enter your Full Name'
-                  className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500'
+                  value={fullName}
+                  disabled={authLoading || googleLoading}
+                  placeholder="Enter your Full Name"
+                  className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50'
                   onChange={(e) => setFullName(e.target.value)}
                 />
 
@@ -530,14 +508,16 @@ const Signup = () => {
 
               <div className='w-full'>
 
-                <label htmlFor="email">
+                <label htmlFor="email" className="text-sm font-medium text-slate-700">
                   Email
                 </label>
 
                 <input
                   type="email"
-                  placeholder='✉️ Enter your Email'
-                  className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500'
+                  value={email}
+                  disabled={authLoading || googleLoading}
+                  placeholder="Enter your Email"
+                  className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50'
                   onChange={(e) => setEmail(e.target.value)}
                 />
 
@@ -546,53 +526,71 @@ const Signup = () => {
             </div>
 
             {/* Password */}
-          <div className='flex flex-col w-full gap-3'>
+            <div className='flex flex-col w-full gap-3'>
 
-  <div className='w-full'>
+              <div className='w-full'>
 
-    <label htmlFor="password">
-      Password
-    </label>
+                <label htmlFor="password" className="text-sm font-medium text-slate-700">
+                  Password
+                </label>
 
-    <div className='relative'>
+                <div className='relative'>
 
-      <input
-        type={showPassword ? "text" : "password"}
-        placeholder=' 🔒 Create a Strong Password'
-        className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500'
-        onChange={(e) => setPassword(e.target.value)}
-      />
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    disabled={authLoading || googleLoading}
+                    placeholder="Create a Password"
+                    className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50'
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
 
-      <button
-        type="button"
-        onClick={() => setShowPassword(!showPassword)}
-        className='absolute right-4 top-3 text-gray-500'
-      >
+                  <button
+                    type="button"
+                    disabled={authLoading || googleLoading}
+                    onClick={() => setShowPassword(!showPassword)}
+                    className='absolute right-4 top-3 text-gray-500 disabled:opacity-50'
+                  >
+                    {showPassword ? "🙈" : "👁️"}
+                  </button>
 
-        {showPassword ? "🙈" : "👁️"}
+                </div>
 
-      </button>
+                {password && (
+                  <div className="mt-1.5">
+                    <div className="flex gap-1 h-1 w-full bg-gray-200 rounded-full overflow-hidden">
+                      <div className={`h-full rounded-full transition-all duration-300 ${
+                        passwordStrength === 'weak' ? 'w-1/3 bg-rose-500' :
+                        passwordStrength === 'medium' ? 'w-2/3 bg-amber-500' :
+                        'w-full bg-emerald-500'
+                      }`} />
+                    </div>
+                    <p className={`text-[10px] font-semibold mt-1 uppercase ${
+                      passwordStrength === 'weak' ? 'text-rose-500' :
+                      passwordStrength === 'medium' ? 'text-amber-500' :
+                      'text-emerald-500'
+                    }`}>
+                      Password strength: {passwordStrength}
+                    </p>
+                  </div>
+                )}
 
-    </div>
-
-  </div>
-
-
+              </div>
 
               <div>
 
-                <label htmlFor="confirm-password">
+                <label htmlFor="confirm-password" className="text-sm font-medium text-slate-700">
                   Confirm Password
                 </label>
 
                 <input
                   type="password"
-                  placeholder=' 🔒 Confirm your Password'
-                  className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500'
+                  value={confirmPassword}
+                  disabled={authLoading || googleLoading}
+                  placeholder="Confirm your Password"
+                  className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50'
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                
                 />
-               
 
               </div>
 
@@ -604,24 +602,17 @@ const Signup = () => {
               <input
                 type="checkbox"
                 id="terms"
-                className='w-4 h-4 mt-1 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500'
-                
-                onChange={(e) => setChecked(!checked)}
+                checked={checked}
+                disabled={authLoading || googleLoading}
+                className='w-4 h-4 mt-1 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50'
+                onChange={(e) => setChecked(e.target.checked)}
               />
 
               <label htmlFor="terms" className='text-sm text-gray-500'>
-
                 I agree to the
-                <span className='text-blue-500'>
-                  {" "}Terms of Service{" "}
-                </span>
-
+                <span className='text-blue-500'>{" "}Terms of Service{" "}</span>
                 and
-
-                <span className='text-blue-500'>
-                  {" "}Privacy Policy
-                </span>
-
+                <span className='text-blue-500'>{" "}Privacy Policy</span>
               </label>
 
             </div>
@@ -635,12 +626,21 @@ const Signup = () => {
 
             <button
               type="submit"
-              className='w-full mt-2 bg-blue-500 text-white py-3 rounded-lg hover:bg-blue-600 transition-colors duration-300'
+              disabled={authLoading || googleLoading}
+              className='w-full mt-2 bg-blue-500 text-white py-3 rounded-lg hover:bg-blue-600 transition-colors duration-300 disabled:opacity-50 flex items-center justify-center'
               onClick={(e) => {handleSignup(e)}}
             >
-
-              Create Account ➜
-
+              {authLoading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <svg className="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  Creating Account...
+                </span>
+              ) : (
+                "Create Account ➜"
+              )}
             </button>
 
             {/* OR */}
@@ -660,27 +660,36 @@ const Signup = () => {
             <button
               onClick={(e) => handleSignupwithGoogle(e)}
               type="button"
-              className='w-full border border-gray-300 text-gray-700 py-3 rounded-lg flex items-center justify-center gap-2 hover:bg-gray-100 transition-colors duration-300'
+              disabled={authLoading || googleLoading}
+              className='w-full border border-gray-300 text-gray-700 py-3 rounded-lg flex items-center justify-center gap-2 hover:bg-gray-100 transition-colors duration-300 disabled:opacity-50'
             >
-
-              <FcGoogle size={22} />
-
-              Sign Up with Google
-
+              {googleLoading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <svg className="animate-spin h-5 w-5 text-slate-700" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  Connecting...
+                </span>
+              ) : (
+                <>
+                  <FcGoogle size={22} />
+                  Sign Up with Google
+                </>
+              )}
             </button>
 
             {/* Login */}
             <button
               onClick={() => navigate('/login')}
               type="button"
-              className='text-gray-700 py-2 rounded-lg'
+              disabled={authLoading || googleLoading}
+              className='text-gray-700 py-2 rounded-lg disabled:opacity-50'
             >
-
               Already have an account?
               <span className='text-blue-500 hover:text-blue-700'>
                 {" "}Log In
               </span>
-
             </button>
 
           </form>

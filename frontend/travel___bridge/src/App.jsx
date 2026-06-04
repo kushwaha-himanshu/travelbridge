@@ -7,19 +7,51 @@ import Dashboard from './pages/dashboard'
 import TextTranslate from './pages/texttranslate'
 import VoiceTranslate from './pages/voicetranslate'
 import CameraTranslate from './pages/cameratranslate'
+import { AuthProvider } from './context/AuthContext'
+import { ProtectedRoute, PublicRoute } from './components/ProtectedRoute'
 
 const App = () => {
   return (
-    <Routes>
-      <Route path="/" element={<Hero />} />
-      <Route path="/signup" element={<Signup />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/forgot-password" element={<ForgotPassword />} />
-      <Route path="/dashboard" element={<Dashboard />} />
-      <Route path="/text-translate" element={<TextTranslate />} />
-      <Route path="/voice-translate" element={<VoiceTranslate />} />
-      <Route path="/camera-translate" element={<CameraTranslate />} />
-    </Routes>
+    <AuthProvider>
+      <Routes>
+        <Route path="/" element={<Hero />} />
+        <Route path="/signup" element={
+          <PublicRoute>
+            <Signup />
+          </PublicRoute>
+        } />
+        <Route path="/login" element={
+          <PublicRoute>
+            <Login />
+          </PublicRoute>
+        } />
+        <Route path="/forgot-password" element={
+          <PublicRoute>
+            <ForgotPassword />
+          </PublicRoute>
+        } />
+        <Route path="/dashboard" element={
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        } />
+        <Route path="/text-translate" element={
+          <ProtectedRoute>
+            <TextTranslate />
+          </ProtectedRoute>
+        } />
+        <Route path="/voice-translate" element={
+          <ProtectedRoute>
+            <VoiceTranslate />
+          </ProtectedRoute>
+        } />
+        <Route path="/camera-translate" element={
+          <ProtectedRoute>
+            <CameraTranslate />
+          </ProtectedRoute>
+        } />
+      </Routes>
+    </AuthProvider>
   )
 }
 

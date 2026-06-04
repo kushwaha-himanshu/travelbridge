@@ -1,7 +1,6 @@
 import User from "../models/User.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import { auth } from "../../../frontend/travel___bridge/src/firebase.js";
 
 const generateAccessAndRefreshToken=async (userId)=>{
 try {

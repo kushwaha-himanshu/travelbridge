@@ -1,5 +1,6 @@
 import { initializeApp } from "firebase/app";
 
+
 import {
   getAuth,
   GoogleAuthProvider
@@ -7,7 +8,7 @@ import {
 
 const firebaseConfig = {
 
-  apiKey:import.meta.env.VITE_FIREBASE_API_KEY,
+  apiKey:import.meta.env.VITE_FIREBASE_API_KEY||"AIzaSyCjBguJmFYUYndI3VC9YQ2TtQWZwbyB0qk",
   authDomain: "travelbridge-7ae98.firebaseapp.com",
   projectId: "travelbridge-7ae98",
   storageBucket: "travelbridge-7ae98.firebasestorage.app",

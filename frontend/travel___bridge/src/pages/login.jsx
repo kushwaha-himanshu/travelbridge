@@ -1,78 +1,81 @@
-import React from 'react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import loginImg from '../assets/login-page-img.jpeg'
 import { FcGoogle } from "react-icons/fc";
-import axios from 'axios';
-import {
-  EmailAuthCredential,
-  signInWithPopup
-} from "firebase/auth";
-
+import { signInWithPopup } from "firebase/auth";
 import { auth, provider } from "../firebase";
+import { useAuth } from '../context/AuthContext';
 
 const Login = () => {
-    const [email, setEmail] = useState('');
+    const { login, loginWithGoogle, authLoading } = useAuth();
+    const [email, setEmail] = useState(() => {
+        return localStorage.getItem('travelbridge-remember-email') || '';
+    });
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
-    const [rememberMe, setRememberMe] = useState(false);
+    const [rememberMe, setRememberMe] = useState(() => {
+        return !!localStorage.getItem('travelbridge-remember-email');
+    });
+    const [validationError, setValidationError] = useState('');
+    const [googleLoading, setGoogleLoading] = useState(false);
     
     const navigate = useNavigate();
 
-    const handleLogin = async(e) => {
+    const handleLogin = async (e) => {
         e.preventDefault();
-         if(!email || !password ){
-            alert("Please enter both email and password.");
+        setValidationError('');
+
+        if (!email || !password) {
+            setValidationError("Please enter both email and password.");
             return;
-            }
+        }
 
-            try{
-                 const res=await axios.post('http://localhost:8000/api/auth/login',{
-                  email,
-                  password
-                 },{
-                  withCredentials:true
-                 });
-                  console.log("Login response:", res);
-                  // Handle successful login (e.g., store token, redirect)
-                  if(res.status===200){
-                    alert("Login successful");
-                    navigate('/dashboard');
-                  }
-            }catch(err){
-                console.log("Login error:", err);
-                alert("Login failed. Please check your credentials and try again.");
-            }
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            setValidationError("Please enter a valid email address.");
+            return;
+        }
 
-
+        const res = await login(email, password, rememberMe);
+        if (res?.success) {
+            navigate('/dashboard');
+        } else if (res?.error) {
+            setValidationError(res.error);
+        }
     }
 
-     // Implement Google Sign-In logic here
     const handleLoginwithGoogle = async (e) => {
         e.preventDefault();
-      try{
-        const result = await signInWithPopup(auth, provider);
-        const user=result.user;
-        if(!user){
-          alert("Google Sign-In failed. Please try again.");
-          return;
+        setGoogleLoading(true);
+        setValidationError('');
+        try {
+            const result = await signInWithPopup(auth, provider);
+            const user = result.user;
+            if (!user) {
+                setValidationError("Google Sign-In failed. No user info retrieved.");
+                setGoogleLoading(false);
+                return;
+            }
+            const email = user.email;
+            const fullname = user.displayName;
+            const res = await loginWithGoogle(fullname, email);
+            if (res?.success) {
+                navigate('/dashboard');
+            } else if (res?.error) {
+                setValidationError(res.error);
+            }
+        } catch (err) {
+            console.error("Google Sign-In error:", err);
+            let userFriendlyMsg = "Google Sign-In failed. Please try again.";
+            if (err.code === 'auth/popup-closed-by-user') {
+                userFriendlyMsg = "Login popup closed. Please try again.";
+            } else if (err.code === 'auth/network-request-failed') {
+                userFriendlyMsg = "Network error. Please check your internet connection.";
+            }
+            setValidationError(userFriendlyMsg);
+        } finally {
+            setGoogleLoading(false);
         }
-        const email=user.email;
-        const fullname=user.displayName;
-        const res=await axios.post('http://localhost:8000/api/auth/google',{
-          email,
-          fullname},{
-            withCredentials:true
-          });
-          console.log("Google Login response:", res);
-          if(res.status===200){
-            alert("Google Login successful");
-            navigate('/dashboard');
-          }
-      }catch(err){
-      throw new Error("Google Sign-In error:",err);
-      
-      }
     }
 
 
@@ -221,14 +224,16 @@ const Login = () => {
             {/* Email */}
             <div>
 
-              <label htmlFor="email">
+              <label htmlFor="email" className="text-sm font-medium text-slate-700">
                 Email
               </label>
 
               <input
                 type="email"
-                placeholder='✉️ Enter your Email'
-                className='w-full px-4 py-3 mt-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500'
+                value={email}
+                disabled={authLoading || googleLoading}
+                placeholder="Enter your Email"
+                className='w-full px-4 py-3 mt-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50'
                 onChange={(e) => setEmail(e.target.value)}
               />
 
@@ -237,7 +242,7 @@ const Login = () => {
             {/* Password */}
             <div>
 
-              <label htmlFor="password">
+              <label htmlFor="password" className="text-sm font-medium text-slate-700">
                 Password
               </label>
 
@@ -245,14 +250,17 @@ const Login = () => {
 
                 <input
                   type={showPassword ? 'text' : 'password'}
-                  placeholder=' 🔒 Enter your Password'
-                  className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500'
+                  value={password}
+                  disabled={authLoading || googleLoading}
+                  placeholder="Enter your Password"
+                  className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50'
                   onChange={(e) => setPassword(e.target.value)}
                 />
 
                 <button
                   type="button"
-                  className='absolute right-4 top-3 text-gray-500'
+                  disabled={authLoading || googleLoading}
+                  className='absolute right-4 top-3 text-gray-500 disabled:opacity-50'
                   onClick={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? '🔒' : '👁️'}
@@ -269,6 +277,7 @@ const Login = () => {
 
                 <input
                   checked={rememberMe}
+                  disabled={authLoading || googleLoading}
                   onChange={(e) => setRememberMe(e.target.checked)}
                   type="checkbox"
                   className='w-4 h-4'
@@ -283,22 +292,39 @@ const Login = () => {
               <button
                 onClick={() => navigate('/forgot-password')}
                 type="button"
-                className='text-sm text-blue-500 hover:text-blue-700'
+                disabled={authLoading || googleLoading}
+                className='text-sm text-blue-500 hover:text-blue-700 disabled:opacity-50'
               >
                 Forgot Password?
               </button>
 
             </div>
 
+            {/* Validation Error */}
+            {validationError && (
+              <p className="text-xs text-rose-500 font-semibold bg-rose-50 border border-rose-100 rounded-lg px-3.5 py-2">
+                ⚠️ {validationError}
+              </p>
+            )}
+
             {/* Button */}
             <button
               type="submit"
-              className='w-full mt-2 bg-blue-500 text-white py-3 rounded-lg hover:bg-blue-600 transition-colors duration-300'
+              disabled={authLoading || googleLoading}
+              className='w-full mt-2 bg-blue-500 text-white py-3 rounded-lg hover:bg-blue-600 transition-colors duration-300 disabled:opacity-50 flex items-center justify-center'
               onClick={(e) => handleLogin(e)}
             >
-
-              Login ➜
-
+              {authLoading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <svg className="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  Logging in...
+                </span>
+              ) : (
+                "Login ➜"
+              )}
             </button>
 
             {/* OR */}
@@ -318,27 +344,33 @@ const Login = () => {
             <button
               onClick={(e) => handleLoginwithGoogle(e)}
               type="button"              
-              className='w-full border border-gray-300 text-gray-700 py-3 rounded-lg flex items-center justify-center gap-2 hover:bg-gray-100 transition-colors duration-300'
+              disabled={authLoading || googleLoading}
+              className='w-full border border-gray-300 text-gray-700 py-3 rounded-lg flex items-center justify-center gap-2 hover:bg-gray-100 transition-colors duration-300 disabled:opacity-50'
             >
-
-              <FcGoogle size={22} />
-
-              Login with Google
-
+              {googleLoading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <svg className="animate-spin h-5 w-5 text-slate-700" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  Connecting...
+                </span>
+              ) : (
+                <>
+                  <FcGoogle size={22} />
+                  Login with Google
+                </>
+              )}
             </button>
 
             {/* Signup */}
             <button
               type="button"
+              disabled={authLoading || googleLoading}
               onClick={() => navigate('/signup')}
-              className='w-full text-gray-700 py-3 rounded-lg flex items-center justify-center gap-2'
+              className='w-full text-gray-700 py-3 rounded-lg flex items-center justify-center gap-2 disabled:opacity-50'
             >
-
-              If not Registered,
-              <span className='text-blue-500'>
-                Sign Up Here
-              </span>
-
+              If not Registered, <span className='text-blue-500'>Sign Up Here</span>
             </button>
 
           </form>

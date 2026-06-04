@@ -1,14 +1,9 @@
-import React from 'react'
-import { useState,useEffect } from 'react'
-import { FaPlay } from "react-icons/fa";
+import { useState } from 'react'
 import imageHero from '../assets/image-hero.png'
 import imageFeature from '../assets/feature-page-image.png'
 import languageImage from '../assets/lang-page-img.png'
-import { FaMosque, FaGlobe } from "react-icons/fa";
-import { GiJapan } from "react-icons/gi";
 import  worldImage from '../assets/lang-img2.png'
 import aboutImage from '../assets/about-img.png'
-import Signup from './signup';
 import { useNavigate } from 'react-router-dom';
 
 const Hero = () => {
