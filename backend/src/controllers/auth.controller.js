@@ -1,6 +1,7 @@
 import User from "../models/User.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import sendEmail from "../services/email.services.js";
 
 const generateAccessAndRefreshToken=async (userId)=>{
 try {
@@ -38,7 +39,129 @@ try{
     email,
     password
   })
+//generate tokens
   const {accessToken,refreshToken}=await generateAccessAndRefreshToken(user._id);
+  //send welcome email
+  const subject = "🌍 Welcome to TravelBridge – Your Journey Starts Here!";
+const text=`Hi ${user.fullname}, welcome to TravelBridge!`;
+const html = `
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin:0;padding:0;background-color:#f4f7fb;font-family:Arial,Helvetica,sans-serif;">
+
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f4f7fb;padding:40px 0;">
+<tr>
+<td align="center">
+
+<table width="600" cellpadding="0" cellspacing="0" border="0"
+style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.08);">
+
+  <!-- Header -->
+  <tr>
+    <td align="center"
+      style="background:linear-gradient(135deg,#2563eb,#1e40af);padding:40px 20px;">
+      <h1 style="margin:0;color:#ffffff;font-size:32px;">
+        ✈️ TravelBridge
+      </h1>
+      <p style="margin:10px 0 0;color:#dbeafe;font-size:16px;">
+        Connecting Travelers Around the World
+      </p>
+    </td>
+  </tr>
+
+  <!-- Content -->
+  <tr>
+    <td style="padding:40px 35px;color:#334155;">
+
+      <h2 style="margin-top:0;color:#1e293b;">
+        Welcome, ${user.fullname}! 🎉
+      </h2>
+
+      <p style="font-size:16px;line-height:1.7;">
+        We're thrilled to have you join the <strong>TravelBridge</strong> community.
+        Your account has been successfully created and you're now ready to discover
+        exciting destinations, connect with fellow travelers, and plan unforgettable journeys.
+      </p>
+
+      <!-- Info Box -->
+      <div style="
+        background:#eff6ff;
+        border-left:4px solid #2563eb;
+        padding:18px;
+        border-radius:8px;
+        margin:25px 0;">
+        <h3 style="margin-top:0;color:#1d4ed8;">
+          🚀 Get Started
+        </h3>
+        <ul style="padding-left:20px;line-height:1.8;margin-bottom:0;">
+          <li>Complete your profile</li>
+          <li>Explore destinations and travel opportunities</li>
+          <li>Connect with travelers worldwide</li>
+          <li>Receive personalized travel recommendations</li>
+        </ul>
+      </div>
+
+      <!-- CTA Button -->
+      <div style="text-align:center;margin:35px 0;">
+        <a href="https://yourdomain.com"
+          style="
+            background:#2563eb;
+            color:#ffffff;
+            text-decoration:none;
+            padding:14px 28px;
+            border-radius:8px;
+            font-size:16px;
+            font-weight:bold;
+            display:inline-block;">
+          Explore TravelBridge
+        </a>
+      </div>
+
+      <p style="font-size:15px;line-height:1.7;">
+        If you have any questions or need assistance, our support team is always here to help.
+      </p>
+
+      <p style="font-size:15px;line-height:1.7;">
+        Thank you for choosing TravelBridge. We look forward to being part of your travel adventures.
+      </p>
+
+      <p style="margin-top:30px;">
+        Safe Travels,<br>
+        <strong>The TravelBridge Team</strong>
+      </p>
+
+    </td>
+  </tr>
+
+  <!-- Footer -->
+  <tr>
+    <td align="center"
+      style="background:#f8fafc;padding:25px;color:#64748b;font-size:13px;">
+      © ${new Date().getFullYear()} TravelBridge. All rights reserved.
+      <br><br>
+      Made with ❤️ for travelers worldwide.
+    </td>
+  </tr>
+
+</table>
+
+</td>
+</tr>
+</table>
+
+</body>
+</html>
+`;
+  const emailSent = await sendEmail(user.email,subject,text,html);
+  if(!emailSent){
+    console.error("Failed to send welcome email to",user.email);
+  }
+
+  //set cookies
   res.cookie("accessToken",accessToken,{httpOnly:true,secure:false,sameSite:"lax"});
   res.cookie("refreshToken",refreshToken,{httpOnly:true,secure:false,sameSite:"lax"});
   return res.status(200).json({
