@@ -2,6 +2,8 @@ import User from "../models/User.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import sendEmail from "../services/email.services.js";
+ import Otp from "../models/otp.model.js";
+ import transporter from "../services/email.services.js";
 
 const generateAccessAndRefreshToken=async (userId)=>{
 try {
@@ -282,5 +284,95 @@ return res.status(200).json({message:"Logout successful"});
   }catch(err){
     console.error("Logout error:",err);
     return res.status(500).json({message:"Server error during logout"});
+  }
+}
+
+export const forgotPassword=async(req,res)=>{
+  try {
+     console.log("BODY =", req.body);
+
+  const  {email}  = req.body;
+    const user=await User.findOne({email:email});
+    if(!user){
+      return res.json({
+      message:
+        "If an account exists, OTP has been sent."
+    });
+    } 
+
+  const otp=Math.floor(100000+Math.random()*900000).toString();
+  await Otp.deleteMany({ email });
+  await Otp.create({
+  email,
+  otp,
+  expiresAt: new Date(
+    Date.now() + 10 * 60 * 1000
+  )
+});
+ await sendEmail(
+  email,
+  "Password Reset OTP",
+  `Your OTP is ${otp}`,
+  `
+    <h2>Your OTP is</h2>
+    <h1>${otp}</h1>
+    <p>Valid for 10 minutes</p>
+  `
+);
+  }
+  catch (error) {
+    console.error("Forgot Password error:",error);
+    return res.status(500).json({message:"Server error during forgot password"});
+  }
+  res.json({
+  success: true
+  });
+}
+
+export const verifyOtp=async(req,res)=>{
+  try {
+    const {email,otp}=req.body;
+    const record=await Otp.findOne({email,otp});
+    if(!record){
+      return res.status(400).json({message:"OTP not found"});
+    } 
+    if(record.expiresAt<new Date()){
+      await Otp.deleteOne({email,otp});
+      return res.status(400).json({message:"OTP expired"});
+    }
+    if (otp!==record.otp){
+      return res.status(400).json({message:"Invalid OTP"});
+    }
+  } catch (error) {
+    console.error("Verify OTP error:",error);
+    return res.status(500).json({message:"Server error during OTP verification"});
+  }
+  res.json({
+    success:true
+  })
+}
+
+export const resetPassword=async(req,res)=>{
+  try {
+    const {email,newPassword}=req.body;
+    const user=await User.findOne({email:email});
+    if(!user){
+      return res.status(404).json({message:"User not found"});
+    } 
+    user.password=newPassword;
+    await user.save();
+    await Otp.deleteMany({email:email});
+   await sendEmail( 
+  email,
+  "Password Reset Successful",
+  "Your password has been reset successfully.",
+  `
+    <h2>Password Reset Successful</h2>
+    <p>Your password has been reset successfully. If you did not initiate this change, please contact our support immediately.</p>
+  `
+);
+  } catch (error) {
+    console.error("Reset Password error:",error);
+    return res.status(500).json({message:"Server error during password reset"});
   }
 }
