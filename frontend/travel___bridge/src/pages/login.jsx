@@ -1,10 +1,11 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import loginImg from '../assets/login-page-img.jpeg'
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { FcGoogle } from "react-icons/fc";
 import { signInWithPopup } from "firebase/auth";
 import { auth, provider } from "../firebase";
 import { useAuth } from '../context/AuthContext';
+import { motion } from 'framer-motion';
+import { Globe, Languages, Mic, Camera, Shield, Eye, EyeOff, Sparkles, ArrowRight, ArrowLeft } from 'lucide-react';
 
 const Login = () => {
     const { login, loginWithGoogle, authLoading } = useAuth();
@@ -78,310 +79,227 @@ const Login = () => {
         }
     }
 
-
-
-  return (
-  
-   
-
-    <div className='w-full min-h-screen flex flex-col lg:flex-row overflow-hidden'>
-
-      {/* LEFT SIDE */}
-      <div
-        className='w-full lg:w-1/2 min-h-screen relative flex flex-col justify-between overflow-hidden bg-gradient-to-br from-blue-50 via-white to-cyan-50
-       shadow-xl rounded-3xl'
-      >
-
-        {/* Overlay */}
-        <div className='absolute inset-0 bg-white/20 backdrop-blur-[1px]'></div>
-
-        {/* TOP CONTENT */}
-        <div className='relative z-10 px-4 sm:px-6 py-6'>
-
-          <h3 className='text-2xl font-semibold text-blue-700 py-2'>
-            🌐 Travel Bridge
-          </h3>
-
-          <h1 className='text-3xl sm:text-4xl lg:text-5xl font-bold text-black mt-8'>
-            Welcome Back !
-          </h1>
-
-          <h1 className='text-gray-700 text-2xl sm:text-3xl mt-2'>
-            Lets Break the Language
-          </h1>
-
-          <span className='text-blue-500 text-3xl font-semibold'>
-            Barrier.
-          </span>
-
-          <p className='text-lg text-gray-700 mt-5 max-w-xl'>
-            Login to your account and continue exploring the world with Travel Bridge.
-          </p>
-
-        </div>
-
-        {/* IMAGE SECTION */}
-        <div
-          className='relative z-10 w-full h-[65vh] lg:h-[70vh] flex items-end justify-center px-4 sm:px-6 py-8 overflow-hidden bg-cover bg-center bg-no-repeat'
-          style={{
-            backgroundImage: `url(${loginImg})`,
-          }}
-        >
-
-          {/* Light Overlay */}
-          <div className='absolute inset-0 bg-white/10'></div>
-
-          {/* Feature Card */}
-          <div className="relative z-10 px-5 py-5 shadow-xl rounded-3xl bg-white/75 backdrop-blur-md w-full max-w-4xl mb-4">
-
-            <div className="flex flex-wrap lg:flex-nowrap items-center justify-between gap-4 lg:gap-6">
-
-              {/* Real-time translations */}
-              <div className="flex items-center gap-3 min-w-[180px]">
-
-                <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center shrink-0">
-                  🌐
-                </div>
-
-                <h3 className="text-sm font-semibold text-gray-900 leading-tight">
-                  Real-time translations
-                </h3>
-
-              </div>
-
-              {/* Offline support */}
-              <div className="flex items-center gap-3 min-w-[180px]">
-
-                <div className="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center shrink-0">
-                  📶
-                </div>
-
-                <h3 className="text-sm font-semibold text-gray-900 leading-tight">
-                  Offline support
-                </h3>
-
-              </div>
-
-              {/* Emergency assistance */}
-              <div className="flex items-center gap-3 min-w-[180px]">
-
-                <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center shrink-0">
-                  🛡️
-                </div>
-
-                <h3 className="text-sm font-semibold text-gray-900 leading-tight">
-                  Emergency assistance
-                </h3>
-
-              </div>
-
-              {/* 100+ Languages */}
-              <div className="flex items-center gap-3 min-w-[180px]">
-
-                <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center shrink-0">
-                  ⭐
-                </div>
-
-                <h3 className="text-sm font-semibold text-gray-900 leading-tight">
-                  100+ Languages
-                </h3>
-
-              </div>
-
-            </div>
-
-          </div>
-
-        </div>
-
-      </div>
-
-      {/* RIGHT SIDE */}
-      <div className='w-full  lg:w-1/2 min-h-screen flex justify-center items-center px-4 sm:px-8 py-8 bg-white shadow-xl rounded-3xl'>
-
-        <div className='w-full max-w-[700px]   px-4 sm:px-8 py-8  bg-gradient-to-br from-white to-blue-50 rounded-3xl shadow-lg'>
-
-          {/* Heading */}
-          <div className='flex flex-col justify-center items-center'>
-
-            <div className='text-5xl mb-4'>
-              👤
-            </div>
-
-            <h1 className='text-3xl sm:text-4xl font-bold text-black text-center'>
-              Log In to <span className='text-blue-500'>Travel Bridge</span>
-            </h1>
-
-            <p className='text-sm text-gray-700 mt-2 text-center'>
-              Access your Account and continue exploring
-            </p>
-
-          </div>
-
-          {/* FORM */}
-          <form className='flex flex-col mt-8 gap-5 w-full'>
-
-            {/* Email */}
-            <div>
-
-              <label htmlFor="email" className="text-sm font-medium text-slate-700">
-                Email
-              </label>
-
-              <input
-                type="email"
-                value={email}
-                disabled={authLoading || googleLoading}
-                placeholder="Enter your Email"
-                className='w-full px-4 py-3 mt-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50'
-                onChange={(e) => setEmail(e.target.value)}
-              />
-
-            </div>
-
-            {/* Password */}
-            <div>
-
-              <label htmlFor="password" className="text-sm font-medium text-slate-700">
-                Password
-              </label>
-
-              <div className='relative mt-2'>
-
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  disabled={authLoading || googleLoading}
-                  placeholder="Enter your Password"
-                  className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50'
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-
-                <button
-                  type="button"
-                  disabled={authLoading || googleLoading}
-                  className='absolute right-4 top-3 text-gray-500 disabled:opacity-50'
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? '🔒' : '👁️'}
-                </button>
-
-              </div>
-
-            </div>
-
-            {/* Remember + Forgot */}
-            <div className='flex items-center justify-between flex-wrap gap-3'>
-
-              <div className='flex items-center gap-2'>
-
-                <input
-                  checked={rememberMe}
-                  disabled={authLoading || googleLoading}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  type="checkbox"
-                  className='w-4 h-4'
-                />
-
-                <label className='text-sm text-gray-600'>
-                  Remember Me
-                </label>
-
-              </div>
-
-              <button
-                onClick={() => navigate('/forgot-password')}
-                type="button"
-                disabled={authLoading || googleLoading}
-                className='text-sm text-blue-500 hover:text-blue-700 disabled:opacity-50'
-              >
-                Forgot Password?
-              </button>
-
-            </div>
-
-            {/* Validation Error */}
-            {validationError && (
-              <p className="text-xs text-rose-500 font-semibold bg-rose-50 border border-rose-100 rounded-lg px-3.5 py-2">
-                ⚠️ {validationError}
-              </p>
-            )}
-
-            {/* Button */}
+    return (
+        <div className="w-full min-h-screen bg-[#0B0F19] text-slate-100 flex flex-col lg:flex-row overflow-hidden relative font-sans">
+            
+            {/* Background Glows */}
+            <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-blue-600/5 blur-[120px] pointer-events-none z-0" />
+            <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-cyan-600/5 blur-[120px] pointer-events-none z-0" />
+
+            {/* Back to Home Link */}
             <button
-              type="submit"
-              disabled={authLoading || googleLoading}
-              className='w-full mt-2 bg-blue-500 text-white py-3 rounded-lg hover:bg-blue-600 transition-colors duration-300 disabled:opacity-50 flex items-center justify-center'
-              onClick={(e) => handleLogin(e)}
+                onClick={() => navigate('/')}
+                className="absolute top-6 left-6 z-20 flex items-center gap-1.5 text-xs font-bold text-slate-400 hover:text-white bg-slate-900/60 border border-slate-800/80 px-3.5 py-2 rounded-xl backdrop-blur-md transition-all cursor-pointer"
             >
-              {authLoading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <svg className="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                  </svg>
-                  Logging in...
-                </span>
-              ) : (
-                "Login ➜"
-              )}
+                <ArrowLeft className="w-4 h-4" /> Back to Home
             </button>
 
-            {/* OR */}
-            <div className="flex items-center gap-3 w-full my-2">
+            {/* LEFT SIDE: Brand Showcase */}
+            <div className="w-full lg:w-1/2 flex flex-col justify-between p-8 sm:p-12 lg:p-16 relative z-10 border-b lg:border-b-0 lg:border-r border-slate-850 bg-slate-900/10 backdrop-blur-xs">
+                
+                {/* Brand Header */}
+                <div className="flex items-center gap-2.5 pt-12 lg:pt-0">
+                    <div className="bg-gradient-to-tr from-blue-600 to-cyan-500 p-2 rounded-xl">
+                        <Globe className="w-5 h-5 text-white" />
+                    </div>
+                    <span className="text-xl font-bold tracking-tight text-white">TravelBridge</span>
+                </div>
 
-              <div className="flex-1 h-[1px] bg-gray-300"></div>
+                {/* Main Headline */}
+                <div className="space-y-6 max-w-lg my-12 lg:my-0 text-left">
+                    <div className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 px-3 py-1.5 rounded-full text-blue-400 text-[10px] font-bold uppercase tracking-wider">
+                        <Sparkles className="w-3.5 h-3.5" /> Break Language Barriers
+                    </div>
+                    <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight leading-tight text-white">
+                        Welcome Back! <br />
+                        Let’s Travel <br className="hidden lg:inline" />
+                        Without{' '}
+                        <span className="bg-gradient-to-r from-blue-500 to-cyan-400 bg-clip-text text-transparent">
+                            Barriers.
+                        </span>
+                    </h1>
+                    <p className="text-slate-400 text-sm sm:text-base leading-relaxed">
+                        Sign in to manage your AI itineraries, access offline dictionaries, and scan menus in real time.
+                    </p>
 
-              <p className="text-xs text-gray-500 font-medium">
-                OR
-              </p>
+                    {/* Compact features board */}
+                    <div className="grid grid-cols-2 gap-4 pt-6 border-t border-slate-800/80">
+                        <div className="flex gap-2">
+                            <Languages className="w-4.5 h-4.5 text-blue-400 shrink-0 mt-0.5" />
+                            <div>
+                                <p className="text-xs font-bold text-white">Text translation</p>
+                                <p className="text-[10px] text-slate-500">100+ languages</p>
+                            </div>
+                        </div>
+                        <div className="flex gap-2">
+                            <Mic className="w-4.5 h-4.5 text-sky-400 shrink-0 mt-0.5" />
+                            <div>
+                                <p className="text-xs font-bold text-white">Voice translation</p>
+                                <p className="text-[10px] text-slate-500">Bi-directional conversation</p>
+                            </div>
+                        </div>
+                        <div className="flex gap-2">
+                            <Camera className="w-4.5 h-4.5 text-cyan-400 shrink-0 mt-0.5" />
+                            <div>
+                                <p className="text-xs font-bold text-white">Camera Scanner</p>
+                                <p className="text-[10px] text-slate-500">Instant menu OCR</p>
+                            </div>
+                        </div>
+                        <div className="flex gap-2">
+                            <Shield className="w-4.5 h-4.5 text-rose-500 shrink-0 mt-0.5" />
+                            <div>
+                                <p className="text-xs font-bold text-white">SOS Assistance</p>
+                                <p className="text-[10px] text-slate-500">Offline local support</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-              <div className="flex-1 h-[1px] bg-gray-300"></div>
-
+                {/* Footer text */}
+                <p className="text-[10px] text-slate-500 text-left">
+                    © {new Date().getFullYear()} TravelBridge Inc. Trusted by 50,000+ travelers globally.
+                </p>
             </div>
 
-            {/* Google */}
-            <button
-              onClick={(e) => handleLoginwithGoogle(e)}
-              type="button"              
-              disabled={authLoading || googleLoading}
-              className='w-full border border-gray-300 text-gray-700 py-3 rounded-lg flex items-center justify-center gap-2 hover:bg-gray-100 transition-colors duration-300 disabled:opacity-50'
-            >
-              {googleLoading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <svg className="animate-spin h-5 w-5 text-slate-700" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                  </svg>
-                  Connecting...
-                </span>
-              ) : (
-                <>
-                  <FcGoogle size={22} />
-                  Login with Google
-                </>
-              )}
-            </button>
+            {/* RIGHT SIDE: Glassmorphic Login Form */}
+            <div className="w-full lg:w-1/2 flex justify-center items-center p-8 sm:p-12 relative z-10">
+                <div className="w-full max-w-md bg-slate-900/40 border border-slate-800/80 backdrop-blur-md rounded-3xl p-6 sm:p-8 shadow-2xl flex flex-col justify-between text-left space-y-6">
+                    
+                    <div>
+                        <h2 className="text-xl font-bold text-white">Sign In</h2>
+                        <p className="text-xs text-slate-500 mt-1">Enter your details to log in to TravelBridge.</p>
+                    </div>
 
-            {/* Signup */}
-            <button
-              type="button"
-              disabled={authLoading || googleLoading}
-              onClick={() => navigate('/signup')}
-              className='w-full text-gray-700 py-3 rounded-lg flex items-center justify-center gap-2 disabled:opacity-50'
-            >
-              If not Registered, <span className='text-blue-500'>Sign Up Here</span>
-            </button>
+                    <form onSubmit={handleLogin} className="space-y-4">
+                        
+                        {/* Email Input */}
+                        <div>
+                            <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mb-2">Email Address</label>
+                            <input
+                                type="email"
+                                value={email}
+                                disabled={authLoading || googleLoading}
+                                onChange={(e) => setEmail(e.target.value)}
+                                placeholder="name@domain.com"
+                                className="w-full bg-slate-950 border border-slate-800 text-xs text-slate-100 placeholder-slate-650 px-4 py-3 rounded-xl focus:outline-none focus:border-blue-500 disabled:opacity-50"
+                                required
+                            />
+                        </div>
 
-          </form>
+                        {/* Password Input */}
+                        <div>
+                            <div className="flex justify-between items-center mb-2">
+                                <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Password</label>
+                                <button
+                                    type="button"
+                                    onClick={() => navigate('/forgot-password')}
+                                    className="text-[10px] font-semibold text-blue-400 hover:text-blue-300"
+                                >
+                                    Forgot Password?
+                                </button>
+                            </div>
+                            <div className="relative">
+                                <input
+                                    type={showPassword ? 'text' : 'password'}
+                                    value={password}
+                                    disabled={authLoading || googleLoading}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    placeholder="••••••••"
+                                    className="w-full bg-slate-950 border border-slate-800 text-xs text-slate-100 placeholder-slate-650 px-4 py-3 rounded-xl focus:outline-none focus:border-blue-500 disabled:opacity-50 pr-11"
+                                    required
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-3.5 top-3 text-slate-500 hover:text-slate-300"
+                                >
+                                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Remember Me */}
+                        <div className="flex items-center gap-2 pt-1">
+                            <input
+                                type="checkbox"
+                                id="remember"
+                                checked={rememberMe}
+                                onChange={(e) => setRememberMe(e.target.checked)}
+                                className="w-4 h-4 rounded border-slate-800 bg-slate-950 text-blue-600 focus:ring-blue-500"
+                            />
+                            <label htmlFor="remember" className="text-xs text-slate-400 select-none">Remember my email</label>
+                        </div>
+
+                        {/* Error message */}
+                        {validationError && (
+                            <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl text-xs font-semibold text-rose-400 flex items-center gap-2 leading-relaxed">
+                                <Shield className="w-4.5 h-4.5 text-rose-400 shrink-0" />
+                                <span>{validationError}</span>
+                            </div>
+                        )}
+
+                        {/* Submit Button */}
+                        <button
+                            type="submit"
+                            disabled={authLoading || googleLoading}
+                            className="w-full bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-bold text-xs py-3.5 rounded-xl shadow-lg shadow-blue-500/10 hover:scale-[1.01] transition-all flex items-center justify-center gap-2 mt-4"
+                        >
+                            {authLoading ? (
+                                <span className="flex items-center justify-center gap-2">
+                                    <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                                    </svg>
+                                    Signing In...
+                                </span>
+                            ) : (
+                                <>Sign In <ArrowRight className="w-4 h-4" /></>
+                            )}
+                        </button>
+                    </form>
+
+                    {/* OR Separator */}
+                    <div className="flex items-center gap-3 w-full my-2.5">
+                        <div className="flex-1 h-[1px] bg-slate-800" />
+                        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">OR</span>
+                        <div className="flex-1 h-[1px] bg-slate-800" />
+                    </div>
+
+                    {/* Google Log in */}
+                    <button
+                        onClick={handleLoginwithGoogle}
+                        disabled={authLoading || googleLoading}
+                        className="w-full border border-slate-850 hover:bg-slate-800/40 text-slate-300 font-bold text-xs py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all"
+                    >
+                        {googleLoading ? (
+                            <span className="flex items-center justify-center gap-2">
+                                <svg className="animate-spin h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                                </svg>
+                                Connecting...
+                            </span>
+                        ) : (
+                            <>
+                                <FcGoogle className="w-4.5 h-4.5" />
+                                <span>Sign In with Google</span>
+                            </>
+                        )}
+                    </button>
+
+                    {/* Signup link */}
+                    <button
+                        onClick={() => navigate('/signup')}
+                        className="text-xs text-slate-400 hover:text-slate-200 self-center"
+                    >
+                        New to TravelBridge? <span className="text-blue-400 font-bold hover:underline">Create Account</span>
+                    </button>
+
+                </div>
+            </div>
 
         </div>
+    );
+};
 
-      </div>
-
-    </div>
-
-  )
-}
-
-export default Login
+export default Login;
