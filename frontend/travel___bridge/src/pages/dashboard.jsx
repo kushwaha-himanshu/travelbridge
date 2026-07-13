@@ -255,7 +255,10 @@ console.log("targetLanguagetext:", targetLanguagetext);
     try {
        const {data:order}  = await axios.post('http://localhost:8000/api/payment/create-order', {
 
-        amount:2200 // amount in cents for $22.00
+         amount: 2200 }, // amount in cents for $22.00
+           {
+        withCredentials: true,
+    
        })
        // Initialize Razorpay payment
         const options = {
@@ -279,11 +282,11 @@ console.log("targetLanguagetext:", targetLanguagetext);
                currency: order.currency,
                },
 
-    //             {
-    // withCredentials: true,
+                {
+     withCredentials: true,
   
-    //           })
-              )
+              })
+              
               // res=true,
               alert('Payment successful! Your plan has been upgraded.');
             }catch(error){
@@ -1743,7 +1746,7 @@ const handleCopy =async()=>{
               </div>
 
               {/* Plans */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+              {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
                 <div className="bg-slate-900/40 border border-slate-800 p-6 rounded-3xl flex flex-col justify-between">
                   <div className="space-y-4">
                     <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Current Plan</span>
@@ -1780,7 +1783,201 @@ const handleCopy =async()=>{
                     Upgrade to Elite ($22/mo)
                   </button>
                 </div>
-              </div>
+              </div> */}
+
+
+                {/* Plans */}
+<div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+
+  {premium?.premium ? (
+    // ================= PREMIUM USER =================
+    <div className="md:col-span-2 bg-slate-900/40 border border-green-500/30 rounded-3xl p-8">
+
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <span className="text-xs uppercase tracking-widest text-green-400 font-bold">
+            Active Subscription
+          </span>
+
+          <h2 className="text-3xl font-bold text-white mt-2">
+            {premium.premiumPlan}
+          </h2>
+
+          <p className="text-slate-400 mt-1">
+            Your premium membership is active.
+          </p>
+        </div>
+
+        <div className="bg-green-500/10 border border-green-500/30 px-5 py-2 rounded-full">
+          <span className="text-green-400 font-semibold">
+            ● Active
+          </span>
+        </div>
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-6 mt-8">
+
+        <div className="bg-slate-800/50 rounded-2xl p-5">
+          <p className="text-slate-400 text-sm">Current Plan</p>
+          <h3 className="text-white text-xl font-bold mt-1">
+            {premium.premiumPlan}
+          </h3>
+        </div>
+
+        <div className="bg-slate-800/50 rounded-2xl p-5">
+          <p className="text-slate-400 text-sm">Expires On</p>
+
+          <h3 className="text-white text-xl font-bold mt-1">
+            {premium.premiumExpiry
+              ? new Date(premium.premiumExpiry).toLocaleDateString()
+              : "Lifetime"}
+          </h3>
+        </div>
+
+      </div>
+
+      <div className="mt-8 border-t border-slate-700 pt-6">
+
+        <h3 className="text-white font-semibold mb-4">
+          Premium Benefits
+        </h3>
+
+        <div className="grid md:grid-cols-2 gap-3 text-slate-300">
+
+          <div className="flex items-center gap-2">
+            <Check className="w-5 h-5 text-green-400" />
+            Unlimited AI Trip Planner
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Check className="w-5 h-5 text-green-400" />
+            Unlimited Voice Translation
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Check className="w-5 h-5 text-green-400" />
+            Camera Translation
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Check className="w-5 h-5 text-green-400" />
+            OCR & Document Translation
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Check className="w-5 h-5 text-green-400" />
+            Offline Language Packs
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Check className="w-5 h-5 text-green-400" />
+            Priority Support
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+
+  ) : (
+    // ================= FREE USER =================
+    <>
+      <div className="bg-slate-900/40 border border-slate-800 p-6 rounded-3xl flex flex-col justify-between">
+        <div className="space-y-4">
+          <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">
+            Current Plan
+          </span>
+
+          <h3 className="text-xl font-bold text-white">
+            TravelBridge Pro
+          </h3>
+
+          <p className="text-xs text-slate-400">
+            Renews on June 21, 2027 ($108 billed annually)
+          </p>
+
+          <div className="h-[1px] bg-slate-800 w-full my-4" />
+
+          <ul className="space-y-2.5 text-xs text-slate-300">
+            <li className="flex items-center gap-2">
+              <Check className="w-4 h-4 text-blue-400" />
+              Unlimited AI trip builds
+            </li>
+
+            <li className="flex items-center gap-2">
+              <Check className="w-4 h-4 text-blue-400" />
+              Offline language packages
+            </li>
+
+            <li className="flex items-center gap-2">
+              <Check className="w-4 h-4 text-blue-400" />
+              Real-time vocal translation
+            </li>
+          </ul>
+        </div>
+
+        <button className="w-full mt-6 bg-slate-800 text-slate-300 border border-slate-750 py-2.5 rounded-xl text-xs font-bold">
+          Manage Billing
+        </button>
+      </div>
+
+      <div className="bg-slate-900/40 border border-blue-500/40 p-6 rounded-3xl flex flex-col justify-between relative overflow-hidden">
+
+        <div className="absolute top-0 right-0 bg-blue-600 text-white text-[9px] font-bold uppercase tracking-wider px-3 py-1 rounded-bl-xl">
+          Save 30%
+        </div>
+
+        <div className="space-y-4">
+
+          <span className="text-[10px] text-blue-400 font-bold uppercase tracking-wider block">
+            Recommended Upgrade
+          </span>
+
+          <h3 className="text-xl font-bold text-white">
+            TravelBridge Premium Elite
+          </h3>
+
+          <p className="text-xs text-slate-400">
+            For group travel managers and travel planners.
+          </p>
+
+          <div className="h-[1px] bg-slate-800 w-full my-4" />
+
+          <ul className="space-y-2.5 text-xs text-slate-300">
+            <li className="flex items-center gap-2">
+              <Check className="w-4 h-4 text-blue-400" />
+              Priority access generation servers
+            </li>
+
+            <li className="flex items-center gap-2">
+              <Check className="w-4 h-4 text-blue-400" />
+              Live group collaboration
+            </li>
+
+            <li className="flex items-center gap-2">
+              <Check className="w-4 h-4 text-blue-400" />
+              Dedicated AI Assistant
+            </li>
+          </ul>
+
+        </div>
+
+        <button
+          onClick={handlePyment}
+          className="w-full mt-6 bg-gradient-to-r from-blue-600 to-cyan-500 text-white py-2.5 rounded-xl text-xs font-bold shadow-lg shadow-blue-500/10"
+        >
+          Upgrade to Elite ($22/mo)
+        </button>
+
+      </div>
+    </>
+  )}
+
+</div>
+
+
+
+
             </motion.div>
           )}
 

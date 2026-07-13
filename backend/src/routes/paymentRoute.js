@@ -7,7 +7,7 @@ import { verifyJwt } from "../middlewares/authMiddleware.js";
     const router=express.Router();
 
     router.post("/create-order",createPaymentOrder)
-    router.post("/verify-payment",verifyPayment)
+    router.post("/verify-payment",verifyJwt,verifyPayment)
     router.get("/payment/:id", getPaymentdetails);
 
     export default router
