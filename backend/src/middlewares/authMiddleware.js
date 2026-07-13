@@ -96,6 +96,13 @@ export const verifyJwt = async (req, res, next) => {
 console.log("Decoded JWT payload:", decoded); // Debugging log
     req.user = user;
 
+
+console.log("req.user =", req.user);
+
+console.log("Cookies:", req.cookies);
+console.log("Cookie Header:", req.headers.cookie);
+console.log("Token:", token);
+
     next();
   } catch (err) {
     return res.status(401).json({

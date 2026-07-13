@@ -5,6 +5,7 @@ import sendEmail from "../services/email.services.js";
  import Otp from "../models/otp.model.js";
  import transporter from "../services/email.services.js";
 
+
 const generateAccessAndRefreshToken=async (userId)=>{
 try {
   
@@ -376,3 +377,32 @@ export const resetPassword=async(req,res)=>{
     return res.status(500).json({message:"Server error during password reset"});
   }
 }
+
+
+export const getPremiumStatus = async(req,res)=>{
+  console.log("getPremiumStatus")
+
+    try{
+
+        const user = await User.findById(req.user._id)
+            .select("premium premiumPlan premiumExpiry");
+
+        res.status(200).json(user);
+    }catch(err){
+
+        res.status(500).json({
+            success:false,
+            message:err.message
+        });
+
+    }
+
+}
+
+// for langChange
+
+// export function manageProfile(){
+// user.language = req.body.language;
+// await user.save();
+// }
+

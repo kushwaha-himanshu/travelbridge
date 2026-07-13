@@ -25,6 +25,26 @@ const userSchema = new mongoose.Schema({
   refreshToken: {
     type: String,
   }
+
+  ,
+
+  premium: {
+    type: Boolean,
+    default: false
+},
+
+premiumPlan: {
+    type: String,
+    default: "Free"
+},
+
+premiumExpiry: {
+    type: Date }
+// language:{
+//     type:String,
+//     default:"en"
+// }
+
 }, { timestamps: true });   
 
 //encrypt password

@@ -1,7 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState,useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+
+
+import { useTranslation } from "react-i18next";
+
+import axios from 'axios';
 import {
   LayoutDashboard, Languages, Mic, Camera, Route, History,
   BadgePercent, Settings, Bell, Search, User, Menu, X, Plus,
@@ -55,11 +60,43 @@ const Dashboard = () => {
   const [profileLang, setProfileLang] = useState('English');
 
   const unreadCount = notifications.filter(n => !n.read).length;
+   
+//   const { t, i18n } = useTranslation();
+//   const handleProfile = async () => {
+//     try {
+
+//         localStorage.setItem("language", profileLang);
+
+//         await axios.put(
+//             "http://localhost:8000/api/auth/user_setting",
+//             {
+//                 language: profileLang
+//             }
+//         );
+
+//         i18n.changeLanguage(profileLang);
+
+//     } catch (err) {
+//         console.log(err);
+//     }
+// };
 
   const handleLogout = async () => {
     await logout();
     navigate('/login');
   };
+
+// const handleStartVoice = () => {
+//     setIsVoiceRecording(true);
+//     setVoiceResult('Listening...');
+//     setTimeout(() => {
+//       setVoiceResult('Captured: "How much is this ticket?"');
+//       setTimeout(() => {
+//         setVoiceResult('Translated (Spanish): "¿Cuánto cuesta este boleto?" 🔊');
+//         setIsVoiceRecording(false);
+//       }, 1000);
+//     }, 1500);
+//   };
 
   const handleToggleInterest = (interest) => {
     if (selectedInterests.includes(interest)) {
@@ -98,21 +135,48 @@ const Dashboard = () => {
     return () => clearInterval(timer);
   }, [isGenerating]);
 
-  const handleTranslate = () => {
+  // handle text translation
+
+const [inputText, setInputText] = useState("");
+const [translatedText, setTranslatedText] = useState("");
+const [sourceLanguagetext, setSourceLanguagetext] = useState("en");
+const [targetLanguagetext, setTargetLanguagetext] = useState("ja ");
+
+  const handletextTranslate = async(e) => {
     if (!transInput.trim()) return;
-    setIsTranslating(true);
-    setTimeout(() => {
-      if (sourceLang === 'en' && targetLang === 'ja') {
-        if (transInput.toLowerCase().includes('restaurant')) {
-          setTransOutput('こんにちは、一番近いレストランを探すのを手伝っていただけますか？ (Konnichiwa, ichiban chikai resutoran o sagasu no o tetsudatte itadakemasu ka?)');
-        } else {
-          setTransOutput('翻訳が完了しました (Hon\'yaku ga kanryou shimashita)');
-        }
-      } else {
-        setTransOutput('Traduction réussie! (Translation complete!)');
-      }
-      setIsTranslating(false);
-    }, 500);
+    // setIsTranslating(true);
+    // setTimeout(() => {
+    //   // if (sourceLang === 'en' && targetLang === 'ja') {
+    //   //   if (transInput.toLowerCase().includes('restaurant')) {
+    //   //     setTransOutput('こんにちは、一番近いレストランを探すのを手伝っていただけますか？ (Konnichiwa, ichiban chikai resutoran o sagasu no o tetsudatte itadakemasu ka?)');
+    //   //   } else {
+    //   //     setTransOutput('翻訳が完了しました (Hon\'yaku ga kanryou shimashita)');
+    //   //   }
+    //   // } else {
+    //   //   setTransOutput('Traduction réussie! (Translation complete!)');
+    //   // }
+    //   // setIsTranslating(false);
+    // }, 500);
+
+    
+
+try{
+    const res= await axios.post("http://localhost:8000/api/text/uplaod-text",{
+            text: inputText,
+         sourceLanguagetext,
+         targetLanguagetext
+    }
+    )
+
+    console.log("inputText:", inputText);
+console.log("sourceLanguagetext:", sourceLanguagetext);
+console.log("targetLanguagetext:", targetLanguagetext);
+    setTranslatedText(res.data.translated)
+
+  }catch (error) {
+    console.error(error);
+  }
+
   };
 
   const handleStartVoice = () => {
@@ -178,6 +242,161 @@ const Dashboard = () => {
     if (!name) return 'U';
     return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
   };
+
+
+
+  // payment handler
+
+  // const res=false
+
+  const handlePyment = async () => {
+
+    // Create a new order on the backend
+    try {
+       const {data:order}  = await axios.post('http://localhost:8000/api/payment/create-order', {
+
+        amount:2200 // amount in cents for $22.00
+       })
+       // Initialize Razorpay payment
+        const options = {
+          // key: process.env.REACT_APP_RAZORPAY_KEY_ID, // Your Razorpay key ID
+          key: import.meta.env.VITE_RAZORPAY_KEY_ID,
+          amount: order.amount, // Amount in paise
+          currency: order.currency,
+          name: "TravelBridge Premium",
+          description: "Upgrade to Elite Plan",
+          order_id: order.id, // Order ID from backend
+          handler: async function (response) {
+            const { razorpay_payment_id, razorpay_order_id, razorpay_signature } = response;
+            try{
+
+              // Verify payment on the backend
+              const {data:verificationResult} = await axios.post('http://localhost:8000/api/payment/verify-payment',{
+              razorpayOrderId: razorpay_order_id,
+              razorpayPaymentId: razorpay_payment_id,
+              signature: razorpay_signature,
+               amount: order.amount / 100,
+               currency: order.currency,
+               },
+
+    //             {
+    // withCredentials: true,
+  
+    //           })
+              )
+              // res=true,
+              alert('Payment successful! Your plan has been upgraded.');
+            }catch(error){
+              alert('Payment verification failed. Please contact support.');
+              console.error('Payment verification error:', error);
+            }
+          },
+        
+         prefill: {
+          name: "Test User",
+          email: "test@example.com",
+          contact: "9999999999"
+        },
+        theme: {
+          color: "#3399cc"
+        }
+      };
+       const rzp = new window.Razorpay(options);
+      rzp.open();
+
+    } catch (error) { 
+      console.error('Error creating order:', error);
+      alert('Failed to initiate payment. Please try again later.');
+    }
+  }
+
+  const handleChangePaymentSec = async () => {
+  try {
+    const { data } = await axios.get(
+      `http://localhost:8000/api/payment/payment/${paymentId}`
+    );
+
+    console.log(data.payment.createdAt);
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+
+const [premium,setPremium]=useState({
+   premium:false,
+    premiumPlan:"Free",
+    premiumExpiry:null
+})
+const fetchPremium = async () => {
+    try {
+        const { data } = await axios.get(
+            "http://localhost:8000/api/auth/premium-status",
+            {
+                withCredentials: true,
+            }
+        );
+
+        setPremium(data);
+    } catch (err) {
+        console.log(err);
+    }
+};
+
+useEffect(() => {
+    fetchPremium();
+}, []);
+
+
+// camera Translation
+
+
+
+const fileInputRef = useRef(null);
+const [file, setFile] = useState(null);
+const [preview,setPreview]=useState("")
+const [text,setText]=useState(null)
+const [targetLanguage,setTargetLanguage]=useState("hi")
+
+const handleScan= async ()=>{
+
+  const formData=new FormData();
+  formData.append("image",file);
+  formData.append("targetLanguage",targetLanguage);
+   const res=await axios.post("http://localhost:8000/api/img/upload-img",
+      formData,
+        {
+            headers: {
+                "Content-Type": "multipart/form-data",
+            },
+        }
+    );
+    console.log(res.data);
+
+     setText(res.data.translated);
+
+}
+
+// handle copy 
+
+const [copied,setCopied]=useState(false)
+
+const handleCopy =async()=>{
+  try {
+
+    await navigator.clipboard.writeText(translatedText);
+     setTimeout(() => {
+      setCopied(false);
+    }, 2000);
+  } catch (error) {
+    console.log(error)
+  }
+}
+
+
+
+
+
 
   return (
     <div className="bg-[#0B0F19] text-slate-100 min-h-screen flex overflow-hidden font-sans relative selection:bg-blue-600/30 selection:text-white">
@@ -487,14 +706,15 @@ const Dashboard = () => {
                     <span className="text-[9px] text-slate-500 block">Resets in 8 days</span>
                   </div>
                 </div>
+                
 
                 {/* Premium Status */}
-                <div className="bg-slate-900/40 border border-slate-850 p-5 rounded-2xl flex items-center gap-4 relative overflow-hidden group border-blue-500/30">
+                {/* <div className="bg-slate-900/40 border border-slate-850 p-5 rounded-2xl flex items-center gap-4 relative overflow-hidden group border-blue-500/30">
                   <div className="w-11 h-11 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 shrink-0">
                     <BadgePercent className="w-5 h-5 text-amber-300" />
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Premium Status</span>
+                    <span  className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Premium Status</span>
                     <div className="flex items-center gap-1.5 mt-0.5">
                       <h3 className="text-lg font-black text-white">Pro Active</h3>
                       <Sparkles className="w-3.5 h-3.5 text-amber-300" />
@@ -503,7 +723,72 @@ const Dashboard = () => {
                   </div>
                 </div>
 
-              </div>
+              </div> */}
+              <div className="bg-slate-900/40 border border-blue-500/30 p-5 rounded-2xl flex items-center gap-4">
+
+    <div
+        className={`w-11 h-11 rounded-xl flex items-center justify-center
+
+        ${
+            premium.premium
+            ? "bg-amber-500/10 border border-amber-500/20"
+            : "bg-slate-700 border border-slate-600"
+        }`}
+    >
+
+        <BadgePercent className="w-5 h-5 text-amber-300"/>
+
+    </div>
+
+    <div>
+
+        <span className="text-[10px] uppercase text-slate-500">
+
+            Premium Status
+
+        </span>
+
+        <div className="flex items-center gap-2">
+
+            <h3 className="text-white font-bold">
+
+                {premium.premium
+                    ? premium.premiumPlan
+                    : "Free Plan"}
+
+            </h3>
+
+            {premium.premium &&
+
+                <Sparkles className="w-4 h-4 text-yellow-400"/>
+
+            }
+
+        </div>
+
+        <p className="text-slate-400 text-xs">
+
+            {
+
+                premium.premium
+
+                ?
+
+                `Renews ${new Date(premium.premiumExpiry)
+                    .toLocaleDateString()}`
+
+                :
+
+                "Upgrade to Premium"
+
+            }
+
+        </p>
+
+    </div>
+
+</div>
+</div>
 
               {/* Interactive Widget Row */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -1132,25 +1417,39 @@ const Dashboard = () => {
                 {/* Language Selectors */}
                 <div className="flex items-center gap-3 bg-slate-950 p-2 rounded-xl border border-slate-800 max-w-sm">
                   <select
-                    value={sourceLang}
-                    onChange={(e) => setSourceLang(e.target.value)}
+                    value={sourceLanguagetext}
+                    onChange={(e) => setSourceLanguagetext(e.target.value)}
                     className="bg-slate-900 text-xs text-white border border-slate-800 rounded-lg p-2 flex-1 focus:outline-none"
                   >
-                    <option value="en">English 🇺🇸</option>
-                    <option value="es">Spanish 🇪🇸</option>
-                    <option value="ja">Japanese 🇯🇵</option>
+                    <option value="en">English</option>
+    <option value="hi">Hindi</option>
+    <option value="fr">French</option>
+    <option value="es">Spanish</option>
+    <option value="de">German</option>
+    <option value="ja">Japanese</option>
+    <option value="ko">Korean</option>
+    <option value="zh">Chinese</option>
+    <option value="ar">Arabic</option>
+    <option value="ru">Russian</option>
                   </select>
                   
                   <span className="text-slate-500">⇄</span>
                   
                   <select
-                    value={targetLang}
-                    onChange={(e) => setTargetLang(e.target.value)}
+                    value={targetLanguagetext}
+                    onChange={(e) => setTargetLanguagetext(e.target.value)}
                     className="bg-slate-900 text-xs text-white border border-slate-800 rounded-lg p-2 flex-1 focus:outline-none"
                   >
-                    <option value="ja">Japanese 🇯🇵</option>
-                    <option value="es">Spanish 🇪🇸</option>
-                    <option value="en">English 🇺🇸</option>
+                    <option value="en">English</option>
+    <option value="hi">Hindi</option>
+    <option value="fr">French</option>
+    <option value="es">Spanish</option>
+    <option value="de">German</option>
+    <option value="ja">Japanese</option>
+    <option value="ko">Korean</option>
+    <option value="zh">Chinese</option>
+    <option value="ar">Arabic</option>
+    <option value="ru">Russian</option>
                   </select>
                 </div>
 
@@ -1160,8 +1459,8 @@ const Dashboard = () => {
                   <div className="flex flex-col">
                     <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block mb-2">Original text</span>
                     <textarea
-                      value={transInput}
-                      onChange={(e) => setTransInput(e.target.value)}
+                      value={inputText}
+                      onChange={(e) => setInputText(e.target.value)}
                       className="bg-slate-800/30 border border-slate-800 rounded-2xl p-4 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-slate-700 min-h-[160px] resize-none"
                       placeholder="Type text to translate..."
                     />
@@ -1171,23 +1470,27 @@ const Dashboard = () => {
                     <div>
                       <span className="text-[10px] text-blue-400 font-bold uppercase tracking-wider block mb-2">Translation output</span>
                       <p className={`text-base font-bold leading-relaxed ${isTranslating ? 'text-slate-600' : 'text-white'}`}>
-                        {transOutput}
+                        {translatedText}
                       </p>
                     </div>
                     <div className="flex justify-between items-center pt-4 border-t border-slate-850 mt-4">
                       <button className="p-2 hover:bg-slate-800 text-slate-400 hover:text-white rounded-lg">
                         <Volume2 className="w-4.5 h-4.5" />
                       </button>
-                      <button className="text-xs bg-slate-800 hover:bg-slate-750 text-slate-300 px-3.5 py-1.5 rounded-lg border border-slate-750">
-                        Copy to Clipboard
-                      </button>
+                     <button
+                  onClick={handleCopy}
+                 disabled={!translatedText}
+                     className="text-xs bg-slate-800 hover:bg-slate-750 disabled:opacity-50 disabled:cursor-not-allowed text-slate-300 px-3.5 py-1.5 rounded-lg border border-slate-750"
+                        >
+                {copied ? "Copied ✓" : "Copy to Clipboard"}
+                 </button>
                     </div>
                   </div>
 
                 </div>
 
                 <button
-                  onClick={handleTranslate}
+                  onClick={handletextTranslate}
                   className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3.5 rounded-xl text-xs transition-colors shadow shadow-blue-500/10"
                 >
                   {isTranslating ? 'Translating...' : 'Translate now'}
@@ -1266,12 +1569,21 @@ const Dashboard = () => {
                 {/* Simulated viewfinder */}
                 <div className="relative aspect-video w-full bg-slate-950 border border-slate-800 rounded-2xl overflow-hidden flex items-center justify-center">
                   
-                  <span className="text-xs text-slate-500 font-mono">[ Click "Simulate Scan" below ]</span>
+                  {/* <span className="text-xs text-slate-500 font-mono">[ Click "Simulate Scan" below ]</span> */}
+
+                     {preview && (
+                <img
+                 src={preview}
+                 alt="Preview"
+                className="mt-4 rounded-xl w-auto"
+           />
+                    )             }
+                      
                   
                   {/* Scan bar animation */}
-                  <div className="absolute top-0 left-0 w-full h-[2px] bg-cyan-400 opacity-60 animate-bounce" />
+                  {/* <div className="absolute top-0 left-0 w-full h-[2px] bg-cyan-400 opacity-60 animate-bounce" /> */}
 
-                  {/* Japanese overlay text highlights */}
+                  {/* Japanese overlay text highlights
                   <div className="absolute top-12 left-12 text-center">
                     <span className="text-sm font-bold text-white bg-black/60 px-2 py-0.5 rounded">水</span>
                     <span className="text-[9px] text-cyan-400 block bg-slate-900/80 px-1 py-0.5 rounded border border-cyan-500/20 mt-1">WATER</span>
@@ -1280,28 +1592,106 @@ const Dashboard = () => {
                   <div className="absolute bottom-16 right-16 text-center">
                     <span className="text-sm font-bold text-white bg-black/60 px-2 py-0.5 rounded">お勘定</span>
                     <span className="text-[9px] text-cyan-400 block bg-slate-900/80 px-1 py-0.5 rounded border border-cyan-500/20 mt-1">CHECK / BILL</span>
-                  </div>
+                  </div> */}
+
+                
 
                 </div>
+               <input
+                     type="file"
+                     ref={fileInputRef}
+                     accept="image/*,.pdf"
+                     className="hidden"
+                       onChange={(e) => {
+                      const selectedFile = e.target.files[0];
+                     setFile(selectedFile);
+                      if (selectedFile.type.startsWith("image/")) {
+                      setPreview(URL.createObjectURL(selectedFile));
+                      console.log(selectedFile);
+                           }}
+                          }
+                       />
 
-                <div className="flex gap-4">
-                  <button className="flex-1 bg-slate-800 hover:bg-slate-750 text-slate-200 py-3 rounded-xl border border-slate-700/60 font-bold text-xs">
+
+              
+
+                {/* <div className="flex gap-4">
+                  <button   onClick={() => fileInputRef.current.click()} className="flex-1 bg-slate-800 hover:bg-slate-750 text-slate-200 py-3 rounded-xl border border-slate-700/60 font-bold text-xs">
                     Upload image / PDF
                   </button>
                   <button
                     onClick={() => {
+                      handleScan()
+                      ,
                       setNotifications([
-                        { id: Date.now(), text: "Camera OCR text successfully translated", time: "Just now", read: false },
+                        { id: Date.now(), text: "Camera OCR text successfully translated", time: "Just now", read: false ,...preview,},
                         ...notifications
                       ]);
                     }}
                     className="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-xl font-bold text-xs shadow shadow-blue-500/10"
                   >
                     Simulate Scan
-                  </button>
-                </div>
+                  </button> */}
 
-              </div>
+                   {/* lang option */}
+
+                <div className="space-y-2">
+  <label className="text-sm text-slate-300 font-medium">
+    Target Language
+  </label>
+
+  <select
+    value={targetLanguage}
+    onChange={(e) => setTargetLanguage(e.target.value)}
+    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+  >
+    <option value="en">English</option>
+    <option value="hi">Hindi</option>
+    <option value="fr">French</option>
+    <option value="es">Spanish</option>
+    <option value="de">German</option>
+    <option value="ja">Japanese</option>
+    <option value="ko">Korean</option>
+    <option value="zh">Chinese</option>
+    <option value="ar">Arabic</option>
+    <option value="ru">Russian</option>
+  </select>
+</div>
+
+<div className="flex gap-4">
+  <button
+    onClick={() => fileInputRef.current.click()}
+    className="flex-1 bg-slate-800 hover:bg-slate-750 text-slate-200 py-3 rounded-xl border border-slate-700/60 font-bold text-xs"
+  >
+    Upload image / PDF
+  </button>
+
+  <button
+    onClick={() => {
+      handleScan();
+      setNotifications([
+        {
+          id: Date.now(),
+          text: "Camera OCR text successfully translated",
+          time: "Just now",
+          read: false,
+          ...preview,
+        },
+        ...notifications,
+      ]);
+    }}
+    className="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-xl font-bold text-xs shadow shadow-blue-500/10"
+  >
+    Simulate Scan
+  </button>
+</div>
+
+<div>
+  {text}
+</div>
+</div>
+
+              {/* </div> */}
             </motion.div>
           )}
 
@@ -1386,7 +1776,7 @@ const Dashboard = () => {
                       <li className="flex items-center gap-2"><Check className="w-4 h-4 text-blue-400" /> Direct travel agent custom chat widget</li>
                     </ul>
                   </div>
-                  <button className="w-full mt-6 bg-gradient-to-r from-blue-600 to-cyan-500 text-white py-2.5 rounded-xl text-xs font-bold shadow-lg shadow-blue-500/10">
+                  <button onClick={handlePyment} className="w-full mt-6 bg-gradient-to-r from-blue-600 to-cyan-500 text-white py-2.5 rounded-xl text-xs font-bold shadow-lg shadow-blue-500/10">
                     Upgrade to Elite ($22/mo)
                   </button>
                 </div>
