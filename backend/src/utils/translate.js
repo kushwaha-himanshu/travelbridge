@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 
+
 const client = new OpenAI({
     apiKey: process.env.GROQ_API_KEY,
     baseURL: "https://api.groq.com/openai/v1"
@@ -8,7 +9,7 @@ const client = new OpenAI({
 export async function translateText(text, language) {
 
     const response = await client.chat.completions.create({
-        model: "llama-3.3-70b-versatile",
+        model: "openai/gpt-oss-safeguard-20b",
         messages: [
             {
                 role: "system",

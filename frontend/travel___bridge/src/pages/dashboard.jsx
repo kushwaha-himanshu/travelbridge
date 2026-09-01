@@ -50,9 +50,9 @@ const Dashboard = () => {
   const [targetLang, setTargetLang] = useState('ja');
   const [isTranslating, setIsTranslating] = useState(false);
 
-  // Simulated voice states
-  const [isVoiceRecording, setIsVoiceRecording] = useState(false);
-  const [voiceResult, setVoiceResult] = useState('');
+  // // Simulated voice states
+  // const [isVoiceRecording, setIsVoiceRecording] = useState(false);
+  // const [voiceResult, setVoiceResult] = useState('');
 
   // Settings states
   const [profileName, setProfileName] = useState(user?.fullname || 'Traveler');
@@ -361,25 +361,57 @@ const [preview,setPreview]=useState("")
 const [text,setText]=useState(null)
 const [targetLanguage,setTargetLanguage]=useState("hi")
 
-const handleScan= async ()=>{
+// const handleScan= async ()=>{
 
-  const formData=new FormData();
-  formData.append("image",file);
-  formData.append("targetLanguage",targetLanguage);
-   const res=await axios.post("http://localhost:8000/api/img/upload-img",
-      formData,
-        {
-            headers: {
-                "Content-Type": "multipart/form-data",
-            },
-        }
+//   const formData=new FormData();
+//   formData.append("image",file);
+//   formData.append("targetLanguage",targetLanguage);
+//    const res=await axios.post("http://localhost:8000/api/img/upload-img",
+//       formData,
+//         {
+//             headers: {
+//                 "Content-Type": "multipart/form-data",
+//             },
+//         }
+//     );
+//     console.log(res.data);
+
+//      setText(res.data.translated);
+
+// }
+
+const handleScan = async () => {
+  try {
+    const formData = new FormData();
+
+    formData.append("image", file);
+    formData.append("targetLanguage", targetLanguage);
+
+    const res = await axios.post(
+      "http://localhost:8000/api/img/upload-img",
+      formData
     );
-    console.log(res.data);
 
-     setText(res.data.translated);
+    console.log("Backend response:", res.data);
 
-}
+    setText(res.data.translated);
 
+    setNotifications([
+      {
+        id: Date.now(),
+        text: "Camera OCR text successfully translated",
+        time: "Just now",
+        read: false,
+        ...preview,
+      },
+      ...notifications,
+    ]);
+
+  } catch (error) {
+    console.error("OCR ERROR:", error);
+    console.error("Backend response:", error.response?.data);
+  }
+};
 // handle copy 
 
 const [copied,setCopied]=useState(false)
@@ -395,6 +427,203 @@ const handleCopy =async()=>{
     console.log(error)
   }
 }
+// voice translation
+const [recording,setRecording]=useState(false);
+const [mediaRecorder,setMediaRecorder]=useState(null);
+const [audioBlob,setAudioBlob]=useState(null);
+const [isVoiceRecording,setIsVoiceRecording]=useState(false);
+const [isTranscribing,setIsTranscribing]=useState(false);
+const [voiceResult,setVoiceResult]=useState('');
+const [voiceError,setVoiceError]=useState(null);
+
+
+const startRecording = async () => {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: true
+    });
+
+    const recorder = new MediaRecorder(stream);
+    const chunks = [];
+
+    recorder.ondataavailable = (event) => {
+      if (event.data.size > 0) {
+        chunks.push(event.data);
+      }
+    };
+
+    recorder.onstop = () => {
+      const blob = new Blob(chunks, {
+        type: "audio/webm"
+      });
+
+      console.log("Audio Blob:", blob);
+
+      setAudioBlob(blob);
+
+      // Stop microphone
+      stream.getTracks().forEach((track) => {
+        track.stop();
+      });
+    };
+
+    recorder.start();
+
+    setMediaRecorder(recorder);
+    setRecording(true);
+
+    console.log("Recording started");
+
+  } catch (error) {
+    console.error("Microphone error:", error);
+  }
+};
+const stopRecording = () => {
+  if (mediaRecorder) {
+    mediaRecorder.stop();
+    setRecording(false);
+
+    console.log("Recording stopped");
+  }
+  
+  
+};
+
+
+
+const sendVoiceToBackend = async () => {
+
+    if (!audioBlob) {
+        console.error("No audio recorded");
+        return;
+    }
+
+    try {
+
+        setIsTranscribing(true);
+        setVoiceError(null);
+
+        // =====================================
+        // STEP 1: AUDIO → TEXT
+        // =====================================
+
+        const formData = new FormData();
+
+        formData.append(
+            "audio",
+            audioBlob,
+            "voice.webm"
+        );
+
+        const sttResponse = await axios.post(
+            "http://localhost:8000/api/audio/upload-audio",
+            formData
+        );
+
+        console.log(
+            "STT:",
+            sttResponse.data
+        );
+
+        const originalText =
+            sttResponse.data.text;
+
+
+        // =====================================
+        // STEP 2: TEXT → TRANSLATION
+        // =====================================
+
+        const translationResponse =
+            await axios.post(
+                "http://localhost:8000/api/audio/translate-audio",
+                {
+                    text: originalText,
+                    targetLanguage: "hi"
+                }
+            );
+
+        console.log(
+            "Translation:",
+            translationResponse.data
+        );
+
+        const translatedText =
+            translationResponse.data.text;
+
+
+        setVoiceResult(
+            translatedText
+        );
+
+
+        // =====================================
+        // STEP 3: TRANSLATION → SPEECH
+        // =====================================
+
+        const ttsResponse =
+            await axios.post(
+                "http://localhost:8000/api/audio/text-to-speech",
+                {
+                    text: translatedText
+                }
+            );
+
+        console.log(
+            "TTS:",
+            ttsResponse.data
+        );
+
+
+        // =====================================
+        // STEP 4: PLAY AUDIO
+        // =====================================
+
+        const audioUrl =
+            `http://localhost:8000${ttsResponse.data.audio}`;
+
+        console.log(
+            "Audio URL:",
+            audioUrl
+        );
+
+        const audio =
+            new Audio(audioUrl);
+
+        await audio.play();
+
+
+    } catch (error) {
+
+        console.error(
+            "VOICE TRANSLATION ERROR:",
+            error
+        );
+
+        console.error(
+            "Backend response:",
+            error.response?.data
+        );
+
+        setVoiceError(
+            error.response?.data?.message ||
+            "Voice translation failed"
+        );
+
+    } finally {
+
+        setIsTranscribing(false);
+
+    }
+};
+
+ useEffect(() => {
+    if (audioBlob) {
+      sendVoiceToBackend();
+    }
+
+   }, [audioBlob]);
+
+
 
 
 
@@ -1504,60 +1733,262 @@ const handleCopy =async()=>{
           )}
 
           {/* TAB 4: VOICE TRANSLATION VIEW */}
-          {activeTab === 'voice' && (
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-              <div>
-                <h1 className="text-2xl sm:text-3xl font-extrabold text-white">Voice Translator</h1>
-                <p className="text-slate-400 text-sm mt-1">Real-time bi-directional conversation mic module.</p>
-              </div>
+{activeTab === "voice" && (
 
-              <div className="bg-slate-900/40 border border-slate-850 p-8 rounded-[28px] max-w-xl mx-auto flex flex-col items-center justify-center min-h-[350px] space-y-6 text-center">
-                
-                {/* Voice Circle */}
-                <button
-                  onClick={handleStartVoice}
-                  disabled={isVoiceRecording}
-                  className={`w-24 h-24 rounded-full border border-blue-500/40 flex items-center justify-center transition-all ${
-                    isVoiceRecording
-                      ? 'bg-rose-600 text-white animate-pulse shadow-lg shadow-rose-500/20 border-rose-500/40'
-                      : 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20'
-                  }`}
-                >
-                  <Mic className="w-10 h-10" />
-                </button>
+  <motion.div
+    initial={{
+      opacity: 0,
+      y: 10,
+    }}
+    animate={{
+      opacity: 1,
+      y: 0,
+    }}
+    className="space-y-6"
+  >
 
-                <div>
-                  <h3 className="text-base font-bold text-white">
-                    {isVoiceRecording ? 'Voice listening...' : 'Tap Mic to Speak'}
-                  </h3>
-                  <p className="text-slate-400 text-xs mt-1.5 max-w-xs leading-relaxed">
-                    Speaks naturally. TravelBridge identifies language and synthesizes vocal outputs.
-                  </p>
-                </div>
+    {/* HEADER */}
+    <div>
 
-                {/* Animated waves if active */}
-                {isVoiceRecording && (
-                  <div className="flex gap-1.5 h-6 items-center">
-                    {[0.6, 0.9, 0.4, 0.8, 0.5, 0.9, 0.3].map((val, idx) => (
-                      <span
-                        key={idx}
-                        className="w-1 bg-blue-500 rounded-full animate-bounce"
-                        style={{ height: `${val * 100}%`, animationDelay: `${idx * 0.1}s` }}
-                      />
-                    ))}
-                  </div>
-                )}
+      <h1 className="text-2xl sm:text-3xl font-extrabold text-white">
+        Voice Translator
+      </h1>
 
-                {/* Results balloon */}
-                {voiceResult && (
-                  <div className="w-full bg-slate-800/40 border border-slate-800 p-4 rounded-2xl text-left text-xs leading-relaxed space-y-2">
-                    <p className="text-slate-300 font-semibold">{voiceResult}</p>
-                  </div>
-                )}
+      <p className="text-slate-400 text-sm mt-1">
+        Real-time bi-directional conversation mic module.
+      </p>
 
-              </div>
-            </motion.div>
-          )}
+    </div>
+
+
+    {/* VOICE CARD */}
+    <div
+      className="
+        bg-slate-900/40
+        border border-slate-800
+        p-8
+        rounded-[28px]
+        max-w-xl
+        mx-auto
+        flex
+        flex-col
+        items-center
+        justify-center
+        min-h-[350px]
+        space-y-6
+        text-center
+      "
+    >
+
+      {/* MICROPHONE BUTTON */}
+      <button
+        onClick={
+          recording
+            ? stopRecording
+            : startRecording
+        }
+
+        disabled={isTranscribing}
+
+        className={`
+          w-24
+          h-24
+          rounded-full
+          border
+          flex
+          items-center
+          justify-center
+          transition-all
+
+          ${
+            recording
+              ? `
+                bg-rose-600
+                text-white
+                animate-pulse
+                shadow-lg
+                shadow-rose-500/20
+                border-rose-500/40
+              `
+              : `
+                bg-blue-600
+                hover:bg-blue-500
+                text-white
+                shadow-lg
+                shadow-blue-600/20
+                border-blue-500/40
+              `
+          }
+
+          ${
+            isTranscribing
+              ? "opacity-50 cursor-not-allowed"
+              : ""
+          }
+        `}
+      >
+
+        <Mic className="w-10 h-10" />
+
+      </button>
+
+
+      {/* STATUS */}
+      <div>
+
+        <h3 className="text-base font-bold text-white">
+
+          {recording
+            ? "Voice listening..."
+            : isTranscribing
+            ? "Processing voice..."
+            : "Tap Mic to Speak"
+          }
+
+        </h3>
+
+
+        <p className="text-slate-400 text-xs mt-1.5 max-w-xs leading-relaxed">
+
+          {recording
+            ? "Speak clearly and tap the microphone again when finished."
+            : isTranscribing
+            ? "Converting and translating your voice..."
+            : "Speak naturally. TravelBridge will translate your voice."
+          }
+
+        </p>
+
+      </div>
+
+
+      {/* ANIMATED WAVES */}
+      {recording && (
+
+        <div className="flex gap-1.5 h-6 items-center">
+
+          {[
+            0.6,
+            0.9,
+            0.4,
+            0.8,
+            0.5,
+            0.9,
+            0.3,
+          ].map((val, idx) => (
+
+            <span
+              key={idx}
+              className="
+                w-1
+                bg-blue-500
+                rounded-full
+                animate-bounce
+              "
+              style={{
+                height: `${val * 100}%`,
+                animationDelay: `${idx * 0.1}s`,
+              }}
+            />
+
+          ))}
+
+        </div>
+
+      )}
+
+
+      {/* PROCESSING */}
+      {isTranscribing && (
+
+        <div className="flex items-center gap-2">
+
+          <div className="
+            w-4
+            h-4
+            border-2
+            border-slate-600
+            border-t-blue-500
+            rounded-full
+            animate-spin
+          " />
+
+          <span className="text-xs text-slate-400">
+            Translating...
+          </span>
+
+        </div>
+
+      )}
+
+
+      {/* TRANSLATED RESULT */}
+      {voiceResult && (
+
+        <div
+          className="
+            w-full
+            bg-slate-800/40
+            border
+            border-slate-800
+            p-4
+            rounded-2xl
+            text-left
+          "
+        >
+
+          <p className="
+            text-[10px]
+            uppercase
+            tracking-wider
+            text-slate-500
+            mb-2
+          ">
+            Translated Text
+          </p>
+
+          <p className="
+            text-slate-200
+            text-sm
+            leading-relaxed
+          ">
+            {voiceResult}
+          </p>
+
+        </div>
+
+      )}
+
+
+      {/* ERROR */}
+      {voiceError && (
+
+        <div
+          className="
+            w-full
+            bg-rose-500/10
+            border
+            border-rose-500/20
+            p-3
+            rounded-xl
+          "
+        >
+
+          <p className="text-rose-400 text-xs">
+            {voiceError?.response?.data?.message ||
+             voiceError?.message ||
+             "Voice translation failed"}
+          </p>
+
+        </div>
+
+      )}
+
+    </div>
+
+  </motion.div>
+
+)}
 
           {/* TAB 5: CAMERA TRANSLATION VIEW */}
           {activeTab === 'camera' && (
@@ -1671,7 +2102,7 @@ const handleCopy =async()=>{
 
   <button
     onClick={() => {
-      handleScan();
+      handleScan(),
       setNotifications([
         {
           id: Date.now(),
