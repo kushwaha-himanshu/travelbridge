@@ -1,13 +1,13 @@
 import express from "express"
 import cors from "cors"
 import cookieParser from "cookie-parser"
-import testRoutes from "./routes/test.routes.js"
 import userRoutes from "./routes/user-routes.js";
 import audioRoutes from "./routes/audioRoute.js";
 import imgRoutes from "./routes/imgRoute.js";
 import historyRoutes from "./routes/historyRoute.js"
 import paymentRoutes from "./routes/paymentRoute.js"
 import textTranslateRoutes from"./routes/textTranslate.routes.js"
+import tripRoutes from "./routes/tripRoutes.js"
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -32,7 +32,7 @@ app.use(express.urlencoded({ extended: true, limit: "16kb" }))
 
 // for parsing  cookies 
 app.use(cookieParser());
-app.use("/api/v1/test", testRoutes)
+
 app.use("/api/auth", userRoutes)
 
 app.use(
@@ -46,5 +46,5 @@ app.use("/api/img", imgRoutes);
 app.use("/api/text", textTranslateRoutes);
 app.use("/api/history", historyRoutes);
 app.use("/api/payment",paymentRoutes);
-
+app.use("/api/trip", tripRoutes);
 export { app }
