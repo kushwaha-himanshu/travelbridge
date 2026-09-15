@@ -1,2 +1,6 @@
 node_modules
 .env
+ai_tripplannar/__pycache__
+ai_tripplannar/
+ai_tripplannar/venv
+ai_tripplannar/.venv

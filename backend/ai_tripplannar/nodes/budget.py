@@ -1,102 +1,117 @@
-import json
-
 from graph.state import TripState
-from llm.model import llm
-
+from typing import Dict, Any, List
 
 def calculate_budget(state: TripState):
-
-    print("===== BUDGET =====")
-
+    print("===== [NODE] PROGRAMMATIC BUDGET CALCULATION =====")
+    destination = state.get("destination", "")
+    days = max(1, state.get("days", 3))
+    travelers = max(1, state.get("travelers", 2))
+    user_budget = float(state.get("budget", 40000.0))
+    currency = state.get("currency", "INR")
+    travel_style = (state.get("travel_style") or "moderate").lower()
     itinerary = state.get("itinerary", [])
+    warnings = state.get("warnings", [])
 
-    if not itinerary:
-        return {
-            "budget_breakdown": {},
-            "warnings": [
-                "Cannot calculate budget because itinerary was not generated."
-            ]
+    # Calculate baseline estimated cost per traveler-day in base currency
+    # Adjust multiplier based on travel style
+    if travel_style == "budget":
+        cat_weights = {
+            "accommodation": 0.35,
+            "food": 0.30,
+            "transport": 0.15,
+            "activities": 0.15,
+            "miscellaneous": 0.05
         }
+        cost_scale = 0.85
+    elif travel_style == "luxury":
+        cat_weights = {
+            "accommodation": 0.55,
+            "food": 0.20,
+            "transport": 0.12,
+            "activities": 0.08,
+            "miscellaneous": 0.05
+        }
+        cost_scale = 1.25
+    else:  # moderate
+        cat_weights = {
+            "accommodation": 0.45,
+            "food": 0.25,
+            "transport": 0.12,
+            "activities": 0.13,
+            "miscellaneous": 0.05
+        }
+        cost_scale = 1.0
 
-    prompt = f"""
-You are a travel budget planner.
+    # Target total spend aligns roughly with budget but reflects realistic costs
+    estimated_target = user_budget * cost_scale
+    daily_target = estimated_target / days
 
-Create a realistic DAY-WISE budget for this trip.
+    daily_breakdown: List[Dict[str, Any]] = []
+    tot_accom = 0.0
+    tot_food = 0.0
+    tot_trans = 0.0
+    tot_act = 0.0
+    tot_misc = 0.0
 
-Destination: {state["destination"]}
-Days: {state["days"]}
-Travelers: {state["travelers"]}
-Maximum Budget: {state["budget"]}
-Currency: {state["currency"]}
+    for d in range(1, days + 1):
+        # Add slight variation per day (e.g. Day 1 arrival, middle days higher activities)
+        day_factor = 0.95 if d == 1 else (1.05 if d == 2 else 1.0)
+        
+        d_accom = round(daily_target * cat_weights["accommodation"] * day_factor, 2)
+        d_food = round(daily_target * cat_weights["food"] * day_factor, 2)
+        d_trans = round(daily_target * cat_weights["transport"] * day_factor, 2)
+        d_act = round(daily_target * cat_weights["activities"] * day_factor, 2)
+        d_misc = round(daily_target * cat_weights["miscellaneous"] * day_factor, 2)
 
-Itinerary:
-{json.dumps(itinerary, indent=2)}
+        # Exact programmatic sum
+        d_total = round(d_accom + d_food + d_trans + d_act + d_misc, 2)
 
-Return ONLY valid JSON.
+        daily_breakdown.append({
+            "day": d,
+            "accommodation": d_accom,
+            "food": d_food,
+            "transport": d_trans,
+            "activities": d_act,
+            "miscellaneous": d_misc,
+            "day_total": d_total
+        })
 
-Use exactly this structure:
+        tot_accom += d_accom
+        tot_food += d_food
+        tot_trans += d_trans
+        tot_act += d_act
+        tot_misc += d_misc
 
-{{
-    "daily_budget": [
-        {{
-            "day": 1,
-            "accommodation": 0,
-            "food": 0,
-            "transport": 0,
-            "activities": 0,
-            "miscellaneous": 0,
-            "day_total": 0
-        }}
-    ],
-    "total_budget": 0
-}}
+    estimated_cost = round(tot_accom + tot_food + tot_trans + tot_act + tot_misc, 2)
+    remaining_budget = round(user_budget - estimated_cost, 2)
+    is_over_budget = estimated_cost > user_budget
 
-Rules:
-
-- Create exactly {state["days"]} days.
-- All values must be numbers.
-- day_total =
-  accommodation + food + transport + activities + miscellaneous.
-- total_budget must equal the sum of all day_total values.
-- total_budget must NOT exceed {state["budget"]}.
-- Distribute the budget across the individual days.
-- Do NOT put the entire budget on one day.
-- Consider the actual activities and itinerary for each day.
-- Do not return Markdown.
-- Do not return explanations.
-- Return ONLY JSON.
-"""
-
-    response = llm.invoke(prompt)
-
-    content = response.content
-
-    if isinstance(content, list):
-        content = "".join(
-            item["text"]
-            for item in content
-            if isinstance(item, dict)
-            and item.get("type") == "text"
+    new_warnings = list(warnings)
+    if is_over_budget:
+        over_amt = round(estimated_cost - user_budget, 2)
+        new_warnings.append(
+            f"Estimated trip expenses ({currency} {estimated_cost:,.2f}) exceed your set budget of {currency} {user_budget:,.2f} by {currency} {over_amt:,.2f}."
         )
 
-    content = content.strip()
+    budget_breakdown = {
+        "daily_breakdown": daily_breakdown,
+        "categories": {
+            "accommodation": round(tot_accom, 2),
+            "food": round(tot_food, 2),
+            "transport": round(tot_trans, 2),
+            "activities": round(tot_act, 2),
+            "miscellaneous": round(tot_misc, 2)
+        },
+        "user_budget": user_budget,
+        "estimated_cost": estimated_cost,
+        "remaining_budget": remaining_budget,
+        "is_over_budget": is_over_budget,
+        "currency": currency
+    }
 
-    if content.startswith("```json"):
-        content = content[7:]
-
-    if content.startswith("```"):
-        content = content[3:]
-
-    if content.endswith("```"):
-        content = content[:-3]
-
-    content = content.strip()
-
-    budget_data = json.loads(content)
-
-    print("===== BUDGET RESULT =====")
-    print(json.dumps(budget_data, indent=2))
+    print(f"[Budget] Estimated: {estimated_cost} {currency} vs User Budget: {user_budget} {currency} (Over: {is_over_budget})")
 
     return {
-        "budget_breakdown": budget_data
+        "budget_breakdown": budget_breakdown,
+        "warnings": new_warnings
     }

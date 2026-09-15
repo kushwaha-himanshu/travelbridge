@@ -45,6 +45,7 @@ app.use("/api/audio", audioRoutes);
 app.use("/api/img", imgRoutes);
 app.use("/api/text", textTranslateRoutes);
 app.use("/api/history", historyRoutes);
-app.use("/api/payment",paymentRoutes);
+app.use("/api/payment", paymentRoutes);
+app.use("/api/trips", tripRoutes);
 app.use("/api/trip", tripRoutes);
 export { app }

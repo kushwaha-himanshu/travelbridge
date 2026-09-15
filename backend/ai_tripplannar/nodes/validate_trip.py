@@ -1,45 +1,29 @@
 from graph.state import TripState
+from typing import List
 
 def validate_trip(state: TripState):
-
-    errors=[]
-
+    print("===== [NODE] VALIDATE TRIP =====")
+    errors: List[str] = []
+    
     destination = state.get("destination")
-    days = state.get("days")
-    travelers = state.get("travelers")
-    budget = state.get("budget_breakdown", {}).get("total_budget")
-
+    days = state.get("days", 0)
+    travelers = state.get("travelers", 0)
     itinerary = state.get("itinerary", [])
     budget_breakdown = state.get("budget_breakdown", {})
 
-    # Basic input validation
-
     if not destination:
         errors.append("Destination is missing.")
-
-    if not days or days <= 0:
-        errors.append("Number of days must be greater than 0.")
-
-    if not travelers or travelers <= 0:
-        errors.append("Number of travelers must be greater than 0.")
-
-    if budget is not None and budget < 0:
-        errors.append("Budget cannot be negative.")
-
-    # Check generated results
+    if days <= 0:
+        errors.append("Duration must be at least 1 day.")
+    if travelers <= 0:
+        errors.append("Travelers must be at least 1.")
     if not itinerary:
-        errors.append("Itinerary was not generated.")
-
+        errors.append("Itinerary days could not be generated.")
     if not budget_breakdown:
-        errors.append("Budget information was not generated.")
+        errors.append("Budget breakdown was not calculated.")
 
     is_valid = len(errors) == 0
-
-    print("\n===== VALIDATION =====")
-    print("Valid:", is_valid)
-
-    if errors:
-        print("Errors:", errors)
+    print(f"[Validate Trip] Status: {'Valid' if is_valid else 'Issues found'}, Errors: {errors}")
 
     return {
         "validation_errors": errors,

@@ -8,12 +8,26 @@ import { useTranslation } from "react-i18next";
 
 import axios from 'axios';
 import {
+  TripGenerationProgress,
+  TripOverviewHeader,
+  TripNavigationTabs,
+  ItineraryTimeline,
+  BudgetDashboard,
+  WeatherForecastCards,
+  HotelCards,
+  FoodCards,
+  ActivitiesCards,
+  RouteCards,
+  TripRechatDrawer,
+} from '../components/tripPlanner';
+import { planTrip } from '../services/tripService';
+import {
   LayoutDashboard, Languages, Mic, Camera, Route, History,
   BadgePercent, Settings, Bell, Search, User, Menu, X, Plus,
   Calendar, Compass, DollarSign, Users, Sparkles, Building,
   Utensils, Train, Lightbulb, Check, ChevronDown, Trash2,
   ArrowRight, ArrowLeft, Volume2, ShieldAlert, Download, CreditCard,
-  LogOut, Star, TrendingUp
+  LogOut, Star, TrendingUp, AlertCircle
 } from 'lucide-react';
 
 const Dashboard = () => {
@@ -106,34 +120,6 @@ const Dashboard = () => {
     }
   };
 
-  const startAIGeneration = (e) => {
-    e.preventDefault();
-    if (!destination.trim()) return;
-    setIsGenerating(true);
-    setGenerationStep(0);
-    setShowResults(false);
-  };
-
-  // Simulated AI generation steps
-  useEffect(() => {
-    if (!isGenerating) return;
-
-    const timer = setInterval(() => {
-      setGenerationStep((prev) => {
-        if (prev >= 3) {
-          clearInterval(timer);
-          setTimeout(() => {
-            setIsGenerating(false);
-            setShowResults(true);
-          }, 800);
-          return 3;
-        }
-        return prev + 1;
-      });
-    }, 1200);
-
-    return () => clearInterval(timer);
-  }, [isGenerating]);
 
   // handle text translation
 
@@ -626,6 +612,7 @@ const sendVoiceToBackend = async () => {
 
 const [tripPlan, setTripPlan] = useState(null);
 const [tripError, setTripError] = useState("");
+const [plannerViewTab, setPlannerViewTab] = useState("itinerary");
 
    const calculateDays = (start, end) => {
   const startDate = new Date(start);
@@ -633,14 +620,15 @@ const [tripError, setTripError] = useState("");
 
   const difference = endDate - startDate;
 
-  return Math.ceil(
+  return Math.max(1, Math.ceil(
     difference / (1000 * 60 * 60 * 24)
-  ) + 1;
+  ) + 1);
 };
 
    const getBudgetFromTier = (tier) => {
   switch (tier) {
     case "budget":
+    case "economy":
       return 20000;
 
     case "mid":
@@ -654,66 +642,83 @@ const [tripError, setTripError] = useState("");
   }
 };
 
-   const handleGenerateTrip = async () => {
-  try {
-    setIsGenerating(true);
-    setShowResults(false);
-    setTripError("");
-    setGenerationStep(1);
-
-    const tripData = {
-      destination: destination,
-      days: calculateDays(startDate, endDate),
-      travelers: Number(travelersCount),
-      budget: getBudgetFromTier(budgetTier),
-      currency: "INR",
-      interests: selectedInterests,
-
-      travel_style:
-        budgetTier === "budget"
-          ? "budget"
-          : budgetTier === "mid"
-          ? "moderate"
-          : "luxury",
-
-        check_in: startDate,
-        check_out: endDate,   
-    };
-
-    console.log("Sending trip:", tripData);
-
-    setGenerationStep(2);
-
-    const response = await axios.post(
-      "http://localhost:8000/api/trip/generate",
-      tripData
-    );
-
-    console.log("Received trip:", response.data);
-
-    if (!response.data.success) {
-      throw new Error("Trip generation failed");
+  const handleGenerateTrip = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    
+    // Form validation
+    if (!destination || !destination.trim()) {
+      setTripError("Please enter a destination city or country.");
+      return;
     }
 
-    setTripPlan(response.data.plan);
+    if (!startDate || !endDate) {
+      setTripError("Please select both start and end dates for your trip.");
+      return;
+    }
 
-    setGenerationStep(3);
-    setShowResults(true);
-    setActiveDay(1);
+    const calculatedDays = calculateDays(startDate, endDate);
+    if (calculatedDays < 1 || calculatedDays > 30) {
+      setTripError("Trip duration must be between 1 and 30 days. Please adjust your travel dates.");
+      return;
+    }
 
-  } catch (error) {
-    console.error("Trip generation error:", error);
+    const sDate = new Date(startDate);
+    const eDate = new Date(endDate);
+    if (eDate < sDate) {
+      setTripError("Check-out date cannot be earlier than check-in date.");
+      return;
+    }
 
-    setTripError(
-      error.response?.data?.message ||
-      error.message ||
-      "Failed to generate trip"
-    );
+    try {
+      setIsGenerating(true);
+      setShowResults(false);
+      setTripError("");
+      setGenerationStep(1);
 
-  } finally {
-    setIsGenerating(false);
-  }
-};
+      const tripData = {
+        destination: destination.trim(),
+        days: calculatedDays,
+        travelers: Math.max(1, Number(travelersCount) || 2),
+        budget: getBudgetFromTier(budgetTier),
+        currency: "INR",
+        interests: selectedInterests || [],
+        travel_style:
+          budgetTier === "budget" || budgetTier === "economy"
+            ? "budget"
+            : budgetTier === "mid"
+            ? "moderate"
+            : "luxury",
+        check_in: startDate,
+        check_out: endDate,
+      };
+
+      console.log("[TripPlanner] Submitting trip request to Node.js backend:", tripData);
+      setGenerationStep(2);
+
+      const response = await planTrip(tripData);
+
+      console.log("[TripPlanner] Trip response received from Node.js backend:", response);
+
+      const plan = response.data || response.plan;
+      if (!plan) {
+        throw new Error("Trip plan data was not returned by the server.");
+      }
+
+      setTripPlan(plan);
+      setGenerationStep(3);
+      setShowResults(true);
+      setPlannerViewTab("itinerary");
+      setActiveDay(1);
+    } catch (error) {
+      console.error("[TripPlanner] Trip generation error:", error);
+      setTripError(
+        error.message ||
+        "Unable to generate your trip right now. Please ensure backend services are running and try again."
+      );
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
 
 
@@ -1287,7 +1292,7 @@ const [tripError, setTripError] = useState("");
                     <Compass className="w-5 h-5 text-blue-500" /> Plan a New Trip
                   </h3>
                   
-                  <form onSubmit={startAIGeneration} className="space-y-6 text-left">
+                  <form onSubmit={handleGenerateTrip} className="space-y-6 text-left">
                     
                     {/* Destination Input */}
                     <div>
@@ -1422,679 +1427,122 @@ const [tripError, setTripError] = useState("");
                       </div>
                     </div>
 
+                    {/* Error Banner */}
+                    {tripError && (
+                      <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-3">
+                        <AlertCircle className="w-5 h-5 text-rose-400 shrink-0" />
+                        <div className="flex-1 text-left">
+                          <span className="font-bold block">Planning Request Notice:</span>
+                          <span>{tripError}</span>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Form submit */}
                     <button
                       type="submit"
-                      onClick={handleGenerateTrip}
-                      className="w-full bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white py-3.5 rounded-xl font-bold text-sm shadow-lg shadow-blue-600/25 transition-all flex items-center justify-center gap-2 mt-4 hover:scale-[1.01]"
+                      disabled={isGenerating}
+                      className="w-full bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white py-3.5 rounded-xl font-bold text-sm shadow-lg shadow-blue-600/25 transition-all flex items-center justify-center gap-2 mt-4 hover:scale-[1.01] cursor-pointer disabled:opacity-50"
                     >
-                      <Sparkles className="w-4.5 h-4.5" /> Generate AI Itinerary
+                      <Sparkles className="w-4.5 h-4.5" /> Plan My Trip
                     </button>
 
                   </form>
                 </div>
               )}
 
-              {/* Trip Results Panel */}
+              {/* Loading State with Honest Progress */}
+              {isGenerating && (
+                <TripGenerationProgress destination={destination} />
+              )}
 
+              {/* Rich Modern Travel Dashboard */}
+              {showResults && tripPlan && !isGenerating && (
+                <div className="space-y-6">
+                  {/* Trip Overview Header Banner */}
+                  <TripOverviewHeader
+                    tripData={tripPlan}
+                    onPlanNew={() => {
+                      setShowResults(false);
+                      setTripPlan(null);
+                    }}
+                  />
 
-</motion.div>)}
+                  {/* Navigation Tabs */}
+                  <TripNavigationTabs
+                    activeTab={plannerViewTab}
+                    onChangeTab={setPlannerViewTab}
+                    counts={{
+                      days: tripPlan.itinerary?.length,
+                      weather: tripPlan.weather?.forecast?.length,
+                      hotels: tripPlan.hotels?.length,
+                      activities: tripPlan.activities?.length,
+                      restaurants: tripPlan.restaurants?.length,
+                      routes: tripPlan.routes?.length,
+                    }}
+                  />
 
+                  {/* Active Tab View */}
+                  {plannerViewTab === "itinerary" && (
+                    <ItineraryTimeline itinerary={tripPlan.itinerary} />
+                  )}
 
+                  {plannerViewTab === "budget" && (
+                    <BudgetDashboard
+                      budget={tripPlan.budget}
+                      currency={tripPlan.trip?.currency || "INR"}
+                    />
+                  )}
 
-{/* ================= DESTINATION INFO ================= */}
+                  {plannerViewTab === "weather" && (
+                    <WeatherForecastCards weather={tripPlan.weather} />
+                  )}
 
-{tripPlan?.destination_info?.research && (
-  <div className="mt-8 bg-white rounded-xl shadow p-6 text-gray-900">
+                  {plannerViewTab === "hotels" && (
+                    <HotelCards
+                      hotels={tripPlan.hotels}
+                      currency={tripPlan.trip?.currency || "INR"}
+                    />
+                  )}
 
-    <h2 className="text-2xl font-bold mb-4">
-      🌍 About {tripPlan.destination}
-    </h2>
+                  {plannerViewTab === "activities" && (
+                    <ActivitiesCards activities={tripPlan.activities} />
+                  )}
 
-    <div className="whitespace-pre-line text-gray-700 leading-relaxed">
-      {tripPlan.destination_info.research}
-    </div>
+                  {plannerViewTab === "restaurants" && (
+                    <FoodCards restaurants={tripPlan.restaurants} />
+                  )}
 
-  </div>
-)}
+                  {plannerViewTab === "routes" && (
+                    <RouteCards routes={tripPlan.routes} />
+                  )}
 
+                  {/* Travel Tips & Limitations */}
+                  {tripPlan.tips && tripPlan.tips.length > 0 && (
+                    <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 text-left space-y-3">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
+                        <Lightbulb className="w-4 h-4 text-cyan-400" /> Curated Travel Advisories
+                      </h4>
+                      <ul className="text-xs text-slate-300 space-y-1.5 list-disc pl-5">
+                        {tripPlan.tips.map((tip, idx) => (
+                          <li key={idx}>{tip}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
 
-{/* ================= HOTELS ================= */}
+                  {/* Rechat & Trip Refinement Drawer */}
+                  <TripRechatDrawer
+                    currentTrip={tripPlan}
+                    onUpdateTrip={(updated) => {
+                      setTripPlan(updated);
+                    }}
+                  />
+                </div>
+              )}
 
-{tripPlan?.hotels?.length > 0 && (
-  <div className="mt-8 bg-white rounded-xl shadow p-6 text-gray-900">
-
-    <h2 className="text-2xl font-bold mb-6">
-      🏨 Recommended Hotels
-    </h2>
-
-    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
-
-      {tripPlan.hotels.map((hotel, index) => (
-
-        <div
-          key={hotel.id || index}
-          className="border rounded-xl p-5 hover:shadow-lg transition"
-        >
-
-          <h3 className="text-xl font-bold">
-            {hotel.name || "Hotel"}
-          </h3>
-
-          {hotel.location && (
-            <p className="mt-2 text-gray-600">
-              📍{" "}
-              {typeof hotel.location === "string"
-                ? hotel.location
-                : hotel.location.address ||
-                  hotel.location.city ||
-                  "Location available"}
-            </p>
+            </motion.div>
           )}
-
-          {hotel.rating && (
-            <p className="mt-2">
-              ⭐ {hotel.rating}
-            </p>
-          )}
-
-          {hotel.price && (
-            <p className="mt-2 font-semibold">
-              💰{" "}
-              {typeof hotel.price === "object"
-                ? `${hotel.price.currency || tripPlan.currency} ${
-                    hotel.price.totalPrice ||
-                    hotel.price.amount ||
-                    ""
-                  }`
-                : hotel.price}
-            </p>
-          )}
-
-          {hotel.platform && (
-            <p className="mt-2 text-sm text-gray-500">
-              Booking platform: {hotel.platform}
-            </p>
-          )}
-
-          {hotel.url && (
-            <a
-              href={hotel.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-block mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg"
-            >
-              View Hotel
-            </a>
-          )}
-
-        </div>
-
-      ))}
-
-    </div>
-
-  </div>
-)}
-
-
-{/* ================= ACTIVITIES ================= */}
-
-{tripPlan?.activities?.length > 0 && (
-  <div className="mt-8 bg-white rounded-xl shadow p-6 text-gray-900">
-
-    <h2 className="text-2xl font-bold mb-6">
-      🎯 Things To Do
-    </h2>
-
-    <div className="grid md:grid-cols-2 gap-5">
-
-      {tripPlan.activities.map((activity, index) => (
-
-        <div
-          key={activity.id || index}
-          className="border rounded-xl p-5"
-        >
-
-          <h3 className="text-xl font-bold">
-            {activity.name || "Activity"}
-          </h3>
-
-          {activity.description && (
-            <p className="mt-2 text-gray-600">
-              {activity.description}
-            </p>
-          )}
-
-          {activity.location && (
-            <p className="mt-3">
-              📍{" "}
-              {typeof activity.location === "string"
-                ? activity.location
-                : activity.location.address ||
-                  activity.location.city ||
-                  "Location available"}
-            </p>
-          )}
-
-          {activity.start_time && (
-            <p className="mt-2">
-              🕐 {activity.start_time}
-
-              {activity.end_time &&
-                ` - ${activity.end_time}`}
-            </p>
-          )}
-
-        </div>
-
-      ))}
-
-    </div>
-
-  </div>
-)}
-
-
-{/* ================= RESTAURANTS ================= */}
-
-{tripPlan?.restaurants?.length > 0 && (
-  <div className="mt-8 bg-white rounded-xl shadow p-6 text-gray-900">
-
-    <h2 className="text-2xl font-bold mb-6">
-      🍴 Recommended Restaurants
-    </h2>
-
-    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
-
-      {tripPlan.restaurants.map((restaurant, index) => (
-
-        <div
-          key={restaurant.id || index}
-          className="border rounded-xl p-5"
-        >
-
-          <h3 className="text-xl font-bold">
-            {restaurant.name || "Restaurant"}
-          </h3>
-
-          {restaurant.description && (
-            <p className="mt-2 text-gray-600">
-              {restaurant.description}
-            </p>
-          )}
-
-          {restaurant.location && (
-            <p className="mt-3">
-              📍{" "}
-              {typeof restaurant.location === "string"
-                ? restaurant.location
-                : restaurant.location.address ||
-                  restaurant.location.city ||
-                  "Location available"}
-            </p>
-          )}
-
-          {restaurant.rating && (
-            <p className="mt-2">
-              ⭐ {restaurant.rating}
-            </p>
-          )}
-
-          {restaurant.price_level && (
-            <p className="mt-2">
-              💰 {restaurant.price_level}
-            </p>
-          )}
-
-        </div>
-
-      ))}
-
-    </div>
-
-  </div>
-)}
-
-
-{/* ================= WEATHER ================= */}
-
-{tripPlan?.weather?.length > 0 && (
-  <div className="mt-8 bg-white rounded-xl shadow p-6 text-gray-900">
-
-    <h2 className="text-2xl font-bold mb-6">
-      🌤️ Weather Forecast
-    </h2>
-
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-
-      {tripPlan.weather.map((weather, index) => (
-
-        <div
-          key={`${weather.date}-${index}`}
-          className="border rounded-xl p-5"
-        >
-
-          <h3 className="font-bold text-lg">
-            {weather.date}
-          </h3>
-
-          <p className="mt-3">
-            🌡️ Min: {weather.temperature_min}°C
-          </p>
-
-          <p>
-            🌡️ Max: {weather.temperature_max}°C
-          </p>
-
-          <p className="mt-3">
-            🌧️ Rain probability:{" "}
-            {weather.precipitation_probability}%
-          </p>
-
-          <p className="mt-2">
-            💧 Precipitation:{" "}
-            {weather.precipitation_sum} mm
-          </p>
-
-        </div>
-
-      ))}
-
-    </div>
-
-  </div>
-)}
-
-{/* ================= TRANSPORT ================= */}
-
-{tripPlan?.transport_options?.length > 0 && (
-  <div className="mt-8 bg-white rounded-xl shadow p-6 text-gray-900">
-
-    <h2 className="text-2xl font-bold mb-6">
-      🚗 Transport Options
-    </h2>
-
-    <div className="space-y-4">
-
-      {tripPlan.transport_options.map((route, index) => (
-
-        <div
-          key={index}
-          className="border rounded-xl p-5"
-        >
-
-          <div className="flex justify-between">
-
-            <h3 className="text-xl font-bold">
-              Route {index + 1}
-            </h3>
-
-            <span>
-              {route.success
-                ? "✅ Available"
-                : "❌ Unavailable"}
-            </span>
-
-          </div>
-
-          {route.distance_meters && (
-            <p className="mt-3">
-              📏 Distance:{" "}
-              {(route.distance_meters / 1000).toFixed(2)}
-              {" "}km
-            </p>
-          )}
-
-          {route.duration && (
-            <p className="mt-2">
-              ⏱️ Duration: {route.duration}
-            </p>
-          )}
-
-          {route.static_duration && (
-            <p className="mt-2">
-              🕐 Static duration:{" "}
-              {route.static_duration}
-            </p>
-          )}
-
-        </div>
-
-      ))}
-
-    </div>
-
-  </div>
-)}
-
-{/* ================= OPTIMIZED ROUTES ================= */}
-
-{tripPlan?.optimized_routes?.length > 0 && (
-  <div className="mt-8 bg-white rounded-xl shadow p-6 text-gray-900">
-
-    <h2 className="text-2xl font-bold mb-6">
-      🗺️ Optimized Routes
-    </h2>
-
-    {tripPlan.optimized_routes.map((route, index) => (
-
-      <div
-        key={index}
-        className="border rounded-xl p-5 mb-4"
-      >
-
-        <h3 className="text-xl font-bold">
-          Optimized Route {index + 1}
-        </h3>
-
-        {route.distance_meters && (
-          <p className="mt-3">
-            📏 Distance:{" "}
-            {(route.distance_meters / 1000).toFixed(2)}
-            {" "}km
-          </p>
-        )}
-
-        {route.duration && (
-          <p className="mt-2">
-            ⏱️ Duration: {route.duration}
-          </p>
-        )}
-
-        {route.static_duration && (
-          <p className="mt-2">
-            🕐 Static duration: {route.static_duration}
-          </p>
-        )}
-
-        {route.route_order?.length > 0 && (
-          <div className="mt-3">
-            <p className="font-semibold">
-              🔄 Optimized waypoint order:
-            </p>
-
-            <p className="text-gray-600">
-              {route.route_order.join(" → ")}
-            </p>
-          </div>
-        )}
-
-      </div>
-
-    ))}
-
-  </div>
-)}
-
-{/* ================= ITINERARY ================= */}
-
-{tripPlan?.itinerary?.length > 0 && (
-
-  <div className="mt-8">
-
-    <h2 className="text-3xl font-bold text-white">
-      🗓️ Your Itinerary
-    </h2>
-
-    {/* DAY BUTTONS */}
-
-    <div className="flex gap-3 mt-6 flex-wrap">
-
-      {tripPlan.itinerary.map((day) => (
-
-        <button
-          key={day.day}
-          onClick={() => setActiveDay(day.day)}
-          className={
-            activeDay === day.day
-              ? "px-4 py-2 rounded-lg bg-blue-600 text-white"
-              : "px-4 py-2 rounded-lg bg-white text-gray-900"
-          }
-        >
-          Day {day.day}
-        </button>
-
-      ))}
-
-    </div>
-
-
-    {/* ACTIVE DAY */}
-
-    {tripPlan.itinerary
-      .filter((day) => day.day === activeDay)
-      .map((day) => (
-
-        <div
-          key={day.day}
-          className="mt-6 p-6 rounded-xl shadow bg-white text-gray-900"
-        >
-
-          <h3 className="text-2xl font-bold">
-            Day {day.day}: {day.title}
-          </h3>
-
-          {day.description && (
-            <p className="mt-3 text-gray-700">
-              {day.description}
-            </p>
-          )}
-
-          {day.location && (
-            <p className="mt-4 font-medium">
-              📍 {day.location}
-            </p>
-          )}
-
-
-          {/* DAY ACTIVITIES */}
-
-          <div className="mt-5 space-y-4">
-
-            {day.activities?.map((activity, index) => (
-
-              <div
-                key={`${day.day}-${index}`}
-                className="p-4 rounded-lg bg-gray-100"
-              >
-
-                {typeof activity === "string" ? (
-
-                  <p>
-                    {activity}
-                  </p>
-
-                ) : (
-
-                  <>
-
-                    <h4 className="font-bold text-lg">
-                      {activity.name}
-                    </h4>
-
-                    {activity.start_time && (
-                      <p className="mt-2">
-                        🕐 {activity.start_time}
-                        {activity.end_time &&
-                          ` - ${activity.end_time}`}
-                      </p>
-                    )}
-
-                    {activity.location && (
-                      <p className="mt-2">
-                        📍 {activity.location}
-                      </p>
-                    )}
-
-                    {activity.description && (
-                      <p className="mt-2 text-gray-600">
-                        {activity.description}
-                      </p>
-                    )}
-
-                  </>
-
-                )}
-
-              </div>
-
-            ))}
-
-          </div>
-
-        </div>
-
-      ))}
-
-  </div>
-)}
-
-{/* ================= BUDGET ================= */}
-
-{tripPlan?.budget_breakdown?.daily_budget?.length > 0 && (
-
-  <div className="mt-8 bg-white rounded-xl shadow p-6 text-gray-900">
-
-    <h2 className="text-2xl font-bold mb-6">
-      💰 Day-wise Budget
-    </h2>
-
-    <div className="space-y-6">
-
-      {tripPlan.budget_breakdown.daily_budget.map((day) => (
-
-        <div
-          key={day.day}
-          className="border rounded-xl p-5"
-        >
-
-          <h3 className="text-xl font-bold mb-4">
-            Day {day.day}
-          </h3>
-
-          <div className="space-y-3">
-
-            <div className="flex justify-between">
-              <span>🏨 Accommodation</span>
-              <span>
-                {tripPlan.currency} {day.accommodation}
-              </span>
-            </div>
-
-            <div className="flex justify-between">
-              <span>🍴 Food</span>
-              <span>
-                {tripPlan.currency} {day.food}
-              </span>
-            </div>
-
-            <div className="flex justify-between">
-              <span>🚕 Transport</span>
-              <span>
-                {tripPlan.currency} {day.transport}
-              </span>
-            </div>
-
-            <div className="flex justify-between">
-              <span>🎟 Activities</span>
-              <span>
-                {tripPlan.currency} {day.activities}
-              </span>
-            </div>
-
-            <div className="flex justify-between">
-              <span>🛍 Miscellaneous</span>
-              <span>
-                {tripPlan.currency} {day.miscellaneous}
-              </span>
-            </div>
-
-          </div>
-
-          <div className="border-t mt-4 pt-4 flex justify-between font-bold">
-
-            <span>
-              Day {day.day} Total
-            </span>
-
-            <span>
-              {tripPlan.currency} {day.day_total}
-            </span>
-
-          </div>
-
-        </div>
-
-      ))}
-
-    </div>
-
-
-    {/* TOTAL */}
-
-    <div className="mt-6 p-5 rounded-xl bg-gray-900 text-white flex justify-between">
-
-      <span className="text-xl font-bold">
-        Total Trip Budget
-      </span>
-
-      <span className="text-xl font-bold">
-        {tripPlan.currency}{" "}
-        {tripPlan.budget_breakdown.total_budget}
-      </span>
-
-    </div>
-
-  </div>
-)}
-
-
-{/* ================= VALIDATION ================= */}
-
-{tripPlan?.validation && (
-
-  <div className="mt-8 bg-white rounded-xl shadow p-6 text-gray-900">
-
-    <h2 className="text-2xl font-bold">
-      ✅ Trip Validation
-    </h2>
-
-    <p className="mt-3">
-      Status:{" "}
-
-      {tripPlan.validation.is_valid
-        ? "✅ Valid"
-        : "⚠️ Needs attention"}
-    </p>
-
-
-    {tripPlan.validation.errors?.length > 0 && (
-
-      <div className="mt-4">
-
-        <h3 className="font-bold">
-          Warnings
-        </h3>
-
-        <ul className="list-disc ml-6 mt-2">
-
-          {tripPlan.validation.errors.map(
-            (error, index) => (
-              <li key={index}>
-                {error}
-              </li>
-            )
-          )}
-
-        </ul>
-
-      </div>
-
-    )}
-
-  </div>
-)}
 
           {/* TAB 3: TEXT TRANSLATION VIEW */}
           {activeTab === 'translate' && (

@@ -1,159 +1,63 @@
 from llm.model import llm
 from graph.state import TripState
-
+from tools.geocode_tool import geocode_destination
 
 def trip_research(state: TripState):
-
-    destination = state["destination"]
-    days = state["days"]
-    travelers = state["travelers"]
-    interests = state["interests"]
+    print("===== [NODE] TRIP RESEARCH & GEOCODING =====")
+    destination = state.get("destination", "")
+    days = state.get("days", 3)
+    travelers = state.get("travelers", 2)
+    interests = state.get("interests", [])
     travel_style = state.get("travel_style", "moderate")
 
+    # 1. Dynamic Geocoding
+    geo_data = geocode_destination(destination)
+    latitude = geo_data.get("latitude")
+    longitude = geo_data.get("longitude")
+    country = geo_data.get("country", "")
+
+    print(f"[Trip Research] Destination: {destination} -> Lat: {latitude}, Lng: {longitude}, Country: {country}")
+
+    # 2. Expert Travel Research via LLM
     prompt = f"""
-You are an expert travel researcher.
-
-Create useful travel information for the following trip:
-
+You are an expert global travel researcher.
+Provide essential travel intelligence for:
 Destination: {destination}
-Number of days: {days}
+Duration: {days} days
 Travelers: {travelers}
-Interests: {interests}
+Interests: {', '.join(interests) if interests else 'General sightseeing'}
 Travel style: {travel_style}
 
-Provide:
+Include:
+1. Top landmark areas and scenic zones to explore
+2. Cultural highlights and local etiquette
+3. Recommended rhythm for a {days}-day visit
+4. Practical local transit and walking advice
 
-1. Important places to visit
-2. Recommended activities
-3. Best areas/locations to explore
-4. Suggested local experiences
-5. General travel tips
-
-Do not create a day-by-day itinerary yet.
-
-Keep the information practical and concise.
+Keep it concise, vivid, and structured. Avoid markdown tables or code blocks.
 """
+    try:
+        response = llm.invoke(prompt)
+        content = response.content
+        if isinstance(content, list):
+            research_text = "".join(item.get("text", "") for item in content if isinstance(item, dict))
+        else:
+            research_text = str(content)
+    except Exception as e:
+        print(f"[Trip Research] LLM invoke error: {e}")
+        research_text = f"Explore the vibrant culture, iconic sights, and scenic landscapes of {destination}."
 
-    response = llm.invoke(prompt)
+    # Extract 2-sentence summary
+    summary_lines = [l.strip() for l in research_text.split("\n") if l.strip() and not l.strip().startswith("#")]
+    summary = " ".join(summary_lines[:2]) if summary_lines else f"Discover the best of {destination}."
 
-    content = response.content
-
-    if isinstance(content, list):
-        research = "".join(
-            item["text"]
-            for item in content
-            if isinstance(item, dict)
-            and item.get("type") == "text"
-        )
-    else:
-        research = content
-
-    print("\n===== TRIP RESEARCH =====")
-    print(research)
-
-    # Preserve existing coordinates
-    old_info = state.get("destination_info", {})
-
-      # Temporary coordinates for testing
-    if destination.lower() == "manali":
-        latitude = 32.2396
-        longitude = 77.1887
-
-    elif destination.lower() == "prayagraj":
-        latitude = 25.4358
-        longitude = 81.8463
-
-    else:
-        latitude = None
-        longitude = None
-
-    print("LATITUDE:", latitude)
-    print("LONGITUDE:", longitude)
-    
     return {
         "destination_info": {
-            **old_info,
-            "research": research,
-               "latitude": latitude,
-               "longitude": longitude
+            "name": destination,
+            "latitude": latitude,
+            "longitude": longitude,
+            "country": country,
+            "research": research_text.strip(),
+            "summary": summary[:280]
         }
     }
-
-
-
-# from llm.model import llm
-# from graph.state import TripState
-
-
-# def trip_research(state: TripState):
-
-#     destination = state["destination"]
-#     days = state["days"]
-#     travelers = state["travelers"]
-#     interests = state["interests"]
-#     travel_style = state.get("travel_style", "moderate")
-
-#     prompt = f"""
-# You are an expert travel researcher.
-
-# Create useful travel information for the following trip:
-
-# Destination: {destination}
-# Number of days: {days}
-# Travelers: {travelers}
-# Interests: {interests}
-# Travel style: {travel_style}
-
-# Provide:
-
-# 1. Important places to visit
-# 2. Recommended activities
-# 3. Best areas/locations to explore
-# 4. Suggested local experiences
-# 5. General travel tips
-
-# Do not create a day-by-day itinerary yet.
-
-# Keep the information practical and concise.
-# """
-
-#     response = llm.invoke(prompt)
-
-#     content = response.content
-
-#     if isinstance(content, list):
-#         research = "".join(
-#             item["text"]
-#             for item in content
-#             if isinstance(item, dict)
-#             and item.get("type") == "text"
-#         )
-#     else:
-#         research = content
-
-#     print("\n===== TRIP RESEARCH =====")
-#     print(research)
-
-#     old_info = state.get("destination_info", {})
-
-#     # TEMPORARY TEST COORDINATES
-#     if destination.lower() == "manali":
-#         latitude = 32.2396
-#         longitude = 77.1887
-
-#     elif destination.lower() == "prayagraj":
-#         latitude = 25.4358
-#         longitude = 81.8463
-
-#     else:
-#         latitude = None
-#         longitude = None
-
-#     return {
-#         "destination_info": {
-#             **old_info,
-#             "research": research,
-#             "latitude": latitude,
-#             "longitude": longitude
-#         }
-#     }
